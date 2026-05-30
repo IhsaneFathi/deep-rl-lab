@@ -146,5 +146,5 @@ Créé avec soin par **Ihsane Fathi** — Étudiante ingénieure passionnée par
 <div align="center">
   🦋 &nbsp;&nbsp; 🌹 &nbsp;&nbsp; 🦋
   <br><br>
-  <sub>Made with love · Deep RL Lab v4</sub>
+  <sub>Made with passion · Deep RL Lab</sub>
 </div>
