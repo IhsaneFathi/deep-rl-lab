@@ -1,0 +1,3858 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Deep Reinforcement Learning Lab</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --rose: #e8637a;
+  --rose-light: #f2a0ae;
+  --pink: #f7c5ce;
+  --pink-soft: #fce8ec;
+  --lavender: #b8a9d4;
+  --lavender-light: #d4cce8;
+  --purple: #7c6fa0;
+  --purple-deep: #5a4d7a;
+  --white: #fefefe;
+  --off-white: #f9f5f7;
+  --text-dark: #2a1f30;
+  --text-mid: #5a4d6a;
+  --text-light: #9080a8;
+  --border: rgba(184,169,212,0.25);
+  --card-bg: rgba(255,255,255,0.82);
+  --shadow: 0 4px 24px rgba(124,111,160,0.10);
+  --shadow-hover: 0 8px 36px rgba(124,111,160,0.18);
+  --success: #6db88a;
+  --error: #d06b6b;
+  --radius: 14px;
+  --radius-sm: 8px;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--off-white);
+  color: var(--text-dark);
+  min-height: 100vh;
+  background-image:
+    radial-gradient(ellipse at 20% 0%, rgba(232,99,122,0.07) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 100%, rgba(184,169,212,0.10) 0%, transparent 50%),
+    radial-gradient(ellipse at 60% 40%, rgba(247,197,206,0.06) 0%, transparent 40%);
+}
+
+/* LAYOUT */
+.app { display: flex; min-height: 100vh; }
+
+/* SIDEBAR */
+.sidebar {
+  width: 260px;
+  min-height: 100vh;
+  background: linear-gradient(180deg, #2a1f30 0%, #3d2d4e 60%, #4a3460 100%);
+  position: fixed; left: 0; top: 0; bottom: 0;
+  display: flex; flex-direction: column;
+  z-index: 100;
+  border-right: 1px solid rgba(255,255,255,0.06);
+}
+
+.sidebar-header {
+  padding: 28px 22px 20px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+
+.lab-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.35rem;
+  font-weight: 600;
+  color: var(--white);
+  line-height: 1.3;
+  letter-spacing: 0.01em;
+}
+
+.lab-subtitle {
+  font-size: 0.7rem;
+  color: var(--lavender);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  margin-top: 4px;
+  font-weight: 500;
+}
+
+/* XP Bar in sidebar */
+.sidebar-xp {
+  padding: 16px 22px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+
+.xp-label {
+  font-size: 0.68rem;
+  color: var(--lavender);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 8px;
+  display: flex; justify-content: space-between;
+}
+
+.xp-bar-outer {
+  height: 5px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.xp-bar-inner {
+  height: 100%;
+  background: linear-gradient(90deg, var(--rose), var(--lavender));
+  border-radius: 99px;
+  transition: width 0.6s cubic-bezier(.4,0,.2,1);
+}
+
+/* NAV */
+.nav { flex: 1; overflow-y: auto; padding: 12px 0; }
+.nav::-webkit-scrollbar { width: 4px; }
+.nav::-webkit-scrollbar-track { background: transparent; }
+.nav::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 99px; }
+
+.nav-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 11px 22px;
+  cursor: pointer;
+  transition: all 0.2s;
+  border-left: 3px solid transparent;
+  position: relative;
+}
+
+.nav-item:hover:not(.locked) { background: rgba(255,255,255,0.05); }
+
+.nav-item.active {
+  background: rgba(232,99,122,0.12);
+  border-left-color: var(--rose);
+}
+
+.nav-item.locked { opacity: 0.4; cursor: not-allowed; }
+.nav-item.completed { opacity: 0.9; }
+
+.nav-num {
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.7rem;
+  font-weight: 500;
+  font-family: 'DM Mono', monospace;
+  flex-shrink: 0;
+}
+
+.nav-num.done { background: var(--rose); color: white; }
+.nav-num.current { background: rgba(232,99,122,0.2); color: var(--rose-light); border: 1px solid rgba(232,99,122,0.4); }
+.nav-num.pending { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.3); }
+
+.nav-text { font-size: 0.78rem; color: rgba(255,255,255,0.75); line-height: 1.35; }
+.nav-item.active .nav-text { color: var(--rose-light); }
+
+.lock-icon { margin-left: auto; font-size: 0.65rem; color: rgba(255,255,255,0.25); }
+
+/* MAIN */
+.main {
+  margin-left: 260px;
+  flex: 1;
+  padding: 36px 44px;
+  max-width: calc(100vw - 260px);
+}
+
+/* MODULE HEADER */
+.module-header {
+  margin-bottom: 28px;
+}
+
+.module-tag {
+  display: inline-block;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--purple);
+  font-weight: 500;
+  background: rgba(124,111,160,0.1);
+  padding: 4px 10px;
+  border-radius: 99px;
+  margin-bottom: 10px;
+}
+
+.module-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 2.1rem;
+  font-weight: 600;
+  color: var(--text-dark);
+  line-height: 1.2;
+  margin-bottom: 8px;
+}
+
+.module-desc {
+  font-size: 0.88rem;
+  color: var(--text-mid);
+  max-width: 600px;
+  line-height: 1.6;
+}
+
+/* CARDS */
+.card {
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  padding: 26px;
+  margin-bottom: 20px;
+  backdrop-filter: blur(8px);
+}
+
+.card-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--text-dark);
+  margin-bottom: 16px;
+  display: flex; align-items: center; gap: 10px;
+}
+
+.card-title .icon {
+  width: 32px; height: 32px;
+  border-radius: var(--radius-sm);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.icon-rose { background: rgba(232,99,122,0.12); }
+.icon-lavender { background: rgba(184,169,212,0.18); }
+.icon-purple { background: rgba(124,111,160,0.12); }
+
+/* CONCEPTS GRID */
+.concepts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 14px;
+}
+
+.concept-item {
+  background: linear-gradient(135deg, rgba(247,197,206,0.3) 0%, rgba(216,208,240,0.3) 100%);
+  border: 1px solid rgba(184,169,212,0.3);
+  border-radius: var(--radius-sm);
+  padding: 16px;
+}
+
+.concept-term {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--purple);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 6px;
+}
+
+.concept-def {
+  font-size: 0.82rem;
+  color: var(--text-mid);
+  line-height: 1.5;
+}
+
+/* NOTES */
+.note {
+  border-radius: var(--radius-sm);
+  padding: 14px 18px;
+  font-size: 0.82rem;
+  line-height: 1.6;
+  margin: 14px 0;
+  display: flex; gap: 10px; align-items: flex-start;
+}
+
+.note-label {
+  font-size: 0.67rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 500;
+  white-space: nowrap;
+  margin-top: 2px;
+}
+
+.note.info { background: rgba(184,169,212,0.15); border-left: 3px solid var(--lavender); color: var(--text-mid); }
+.note.info .note-label { color: var(--purple); }
+.note.warning { background: rgba(232,99,122,0.08); border-left: 3px solid var(--rose); color: var(--text-mid); }
+.note.warning .note-label { color: var(--rose); }
+.note.success { background: rgba(109,184,138,0.1); border-left: 3px solid var(--success); color: var(--text-mid); }
+.note.success .note-label { color: var(--success); }
+
+/* BUTTONS */
+.btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 10px 22px;
+  border-radius: var(--radius-sm);
+  font-size: 0.82rem;
+  font-weight: 500;
+  font-family: 'DM Sans', sans-serif;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s;
+  letter-spacing: 0.02em;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--rose) 0%, #c94e6a 100%);
+  color: white;
+  box-shadow: 0 2px 12px rgba(232,99,122,0.3);
+}
+
+.btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 18px rgba(232,99,122,0.38); }
+
+.btn-secondary {
+  background: rgba(124,111,160,0.1);
+  color: var(--purple);
+  border: 1px solid rgba(124,111,160,0.2);
+}
+
+.btn-secondary:hover { background: rgba(124,111,160,0.16); }
+
+.btn-outline {
+  background: transparent;
+  color: var(--text-mid);
+  border: 1px solid var(--border);
+}
+
+.btn-outline:hover { background: rgba(184,169,212,0.1); }
+
+.btn-group { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
+
+/* QUIZ */
+.quiz-question {
+  font-size: 0.92rem;
+  font-weight: 500;
+  color: var(--text-dark);
+  margin-bottom: 16px;
+  line-height: 1.5;
+}
+
+.quiz-options { display: flex; flex-direction: column; gap: 10px; margin-bottom: 18px; }
+
+.quiz-option {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 13px 16px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: all 0.18s;
+  background: rgba(255,255,255,0.6);
+}
+
+.quiz-option:hover { border-color: var(--lavender); background: rgba(216,208,240,0.12); }
+.quiz-option.selected { border-color: var(--purple); background: rgba(124,111,160,0.08); }
+.quiz-option.correct { border-color: var(--success); background: rgba(109,184,138,0.1); }
+.quiz-option.incorrect { border-color: var(--error); background: rgba(208,107,107,0.08); }
+
+.opt-letter {
+  width: 24px; height: 24px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.72rem;
+  font-weight: 500;
+  background: rgba(184,169,212,0.2);
+  color: var(--purple);
+  flex-shrink: 0;
+  font-family: 'DM Mono', monospace;
+}
+
+.quiz-option.correct .opt-letter { background: var(--success); color: white; }
+.quiz-option.incorrect .opt-letter { background: var(--error); color: white; }
+
+.opt-text { font-size: 0.83rem; color: var(--text-mid); line-height: 1.45; padding-top: 2px; }
+
+.quiz-feedback {
+  display: none;
+  border-radius: var(--radius-sm);
+  padding: 14px 18px;
+  margin-top: 12px;
+  font-size: 0.83rem;
+  line-height: 1.6;
+}
+
+.quiz-feedback.visible { display: block; }
+.quiz-feedback.correct-fb { background: rgba(109,184,138,0.12); border: 1px solid rgba(109,184,138,0.25); color: var(--text-mid); }
+.quiz-feedback.incorrect-fb { background: rgba(184,169,212,0.12); border: 1px solid rgba(184,169,212,0.3); color: var(--text-mid); }
+
+.fb-title { font-weight: 500; margin-bottom: 5px; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; }
+.correct-fb .fb-title { color: var(--success); }
+.incorrect-fb .fb-title { color: var(--purple); }
+
+/* LAB SIMULATOR */
+.lab-area {
+  background: linear-gradient(135deg, #1e1428 0%, #2a1e38 100%);
+  border-radius: var(--radius);
+  padding: 24px;
+  color: rgba(255,255,255,0.85);
+  position: relative;
+  overflow: hidden;
+}
+
+.lab-area::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse at 30% 20%, rgba(232,99,122,0.08) 0%, transparent 60%),
+              radial-gradient(ellipse at 70% 80%, rgba(184,169,212,0.06) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+.lab-controls { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+
+.lab-btn {
+  padding: 8px 18px;
+  border-radius: var(--radius-sm);
+  font-size: 0.78rem;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  font-family: 'DM Sans', sans-serif;
+  transition: all 0.18s;
+}
+
+.lab-btn-run {
+  background: var(--rose);
+  color: white;
+  box-shadow: 0 2px 10px rgba(232,99,122,0.35);
+}
+
+.lab-btn-run:hover { background: #d4556e; }
+.lab-btn-run:disabled { background: rgba(255,255,255,0.15); color: rgba(255,255,255,0.4); cursor: not-allowed; box-shadow: none; }
+
+.lab-btn-reset {
+  background: rgba(255,255,255,0.08);
+  color: rgba(255,255,255,0.6);
+  border: 1px solid rgba(255,255,255,0.12);
+}
+
+.lab-btn-reset:hover { background: rgba(255,255,255,0.12); }
+
+.grid-container { display: flex; gap: 20px; flex-wrap: wrap; }
+
+.warehouse-grid {
+  display: grid;
+  gap: 3px;
+  background: rgba(255,255,255,0.04);
+  border-radius: 8px;
+  padding: 12px;
+  flex-shrink: 0;
+}
+
+.cell {
+  width: 44px; height: 44px;
+  border-radius: 5px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.1rem;
+  transition: all 0.25s;
+  border: 1px solid rgba(255,255,255,0.04);
+}
+
+.cell.empty { background: rgba(255,255,255,0.04); }
+.cell.wall { background: rgba(255,255,255,0.12); }
+.cell.goal { background: rgba(109,184,138,0.25); border-color: rgba(109,184,138,0.4); }
+.cell.agent { background: rgba(232,99,122,0.3); border-color: rgba(232,99,122,0.5); }
+.cell.obstacle { background: rgba(208,107,107,0.2); border-color: rgba(208,107,107,0.35); }
+
+.lab-stats {
+  flex: 1;
+  min-width: 200px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.stat-row {
+  display: flex; flex-direction: column; gap: 4px;
+}
+
+.stat-label {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: rgba(255,255,255,0.4);
+  font-family: 'DM Mono', monospace;
+}
+
+.stat-value {
+  font-size: 1.3rem;
+  font-family: 'DM Mono', monospace;
+  color: var(--rose-light);
+  font-weight: 500;
+}
+
+.stat-value.positive { color: #a3d4b5; }
+.stat-value.negative { color: #d4a3a3; }
+
+.log-area {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.7rem;
+  color: rgba(255,255,255,0.5);
+  background: rgba(0,0,0,0.2);
+  border-radius: 6px;
+  padding: 10px 12px;
+  height: 100px;
+  overflow-y: auto;
+  line-height: 1.7;
+  margin-top: 14px;
+}
+
+.log-entry { color: rgba(255,255,255,0.55); }
+.log-entry.reward-pos { color: #a3d4b5; }
+.log-entry.reward-neg { color: #d4a3a3; }
+.log-entry.action { color: var(--rose-light); }
+
+/* NEURAL NET VIZ */
+.nn-viz {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 30px;
+  padding: 20px;
+  flex-wrap: wrap;
+}
+
+.nn-layer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.nn-layer-label {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-light);
+  margin-bottom: 6px;
+  text-align: center;
+}
+
+.nn-nodes {
+  display: flex; flex-direction: column; gap: 8px;
+  position: relative;
+}
+
+.nn-node {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  border: 2px solid;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.65rem;
+  font-family: 'DM Mono', monospace;
+  transition: all 0.3s;
+}
+
+.nn-node.input-node { border-color: var(--lavender); background: rgba(184,169,212,0.15); color: var(--purple); }
+.nn-node.hidden-node { border-color: var(--rose-light); background: rgba(232,99,122,0.1); color: var(--rose); }
+.nn-node.output-node { border-color: var(--success); background: rgba(109,184,138,0.15); color: var(--success); }
+.nn-node.active { box-shadow: 0 0 12px currentColor; transform: scale(1.08); }
+
+.nn-arrow {
+  font-size: 1.4rem;
+  color: var(--border);
+}
+
+.q-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+
+.q-table th {
+  background: rgba(124,111,160,0.12);
+  padding: 10px 14px;
+  text-align: left;
+  font-size: 0.72rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--purple);
+  border-bottom: 1px solid var(--border);
+}
+
+.q-table td {
+  padding: 10px 14px;
+  border-bottom: 1px solid rgba(184,169,212,0.12);
+  color: var(--text-mid);
+  font-family: 'DM Mono', monospace;
+  font-size: 0.82rem;
+}
+
+.q-table tr.best-action td { background: rgba(109,184,138,0.08); color: var(--text-dark); font-weight: 500; }
+.q-table tr.best-action td:last-child { color: var(--success); }
+
+/* PROGRESS BAR inline */
+.progress-track {
+  height: 6px;
+  background: rgba(184,169,212,0.2);
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--rose), var(--lavender));
+  border-radius: 99px;
+  transition: width 0.6s cubic-bezier(.4,0,.2,1);
+}
+
+/* MODULE COMPLETE BANNER */
+.module-complete {
+  background: linear-gradient(135deg, rgba(109,184,138,0.12) 0%, rgba(184,169,212,0.12) 100%);
+  border: 1px solid rgba(109,184,138,0.3);
+  border-radius: var(--radius);
+  padding: 24px;
+  text-align: center;
+  display: none;
+}
+
+.module-complete.visible { display: block; }
+
+/* Quiz progress indicator */
+.quiz-progress-hint {
+  font-size: 0.78rem;
+  color: var(--text-light);
+  font-style: italic;
+  text-align: center;
+  padding: 10px;
+  border: 1px dashed rgba(184,169,212,0.35);
+  border-radius: var(--radius-sm);
+  margin-top: 12px;
+  display: block;
+}
+.quiz-progress-hint.done { display: none; }
+
+/* Module progress bar inside card */
+.module-progress-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(184,169,212,0.08);
+  border: 1px solid rgba(184,169,212,0.2);
+  border-radius: var(--radius-sm);
+  padding: 10px 16px;
+  margin-bottom: 20px;
+  font-size: 0.8rem;
+  color: var(--text-mid);
+}
+.module-progress-banner .mpb-steps {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+}
+.mpb-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: rgba(184,169,212,0.3);
+  transition: background 0.3s;
+}
+.mpb-dot.done { background: var(--rose); }
+
+.mc-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: var(--text-dark);
+  margin-bottom: 8px;
+}
+
+.mc-xp {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.85rem;
+  color: var(--rose);
+  font-weight: 500;
+  margin-bottom: 12px;
+}
+
+.mc-outcome {
+  font-size: 0.88rem;
+  color: var(--text-mid);
+  font-style: italic;
+  max-width: 500px;
+  margin: 0 auto 18px;
+  line-height: 1.6;
+}
+
+/* DASHBOARD specific */
+.dash-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.dash-stat {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(8px);
+}
+
+.dash-stat-num {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 2.2rem;
+  font-weight: 600;
+  color: var(--rose);
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.dash-stat-label {
+  font-size: 0.75rem;
+  color: var(--text-light);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.roadmap { display: flex; flex-direction: column; gap: 10px; }
+
+.roadmap-item {
+  display: flex; align-items: center; gap: 14px;
+  padding: 14px 18px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,0.6);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.roadmap-item:hover:not(.locked-item) {
+  border-color: var(--rose-light);
+  box-shadow: var(--shadow-hover);
+  transform: translateX(3px);
+}
+
+.roadmap-item.locked-item { opacity: 0.45; cursor: not-allowed; }
+.roadmap-item.done-item { border-color: rgba(109,184,138,0.35); background: rgba(109,184,138,0.06); }
+.roadmap-item.current-item { border-color: rgba(232,99,122,0.35); background: rgba(232,99,122,0.05); }
+
+.rm-num {
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.72rem;
+  font-family: 'DM Mono', monospace;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.rm-num.done { background: var(--success); color: white; }
+.rm-num.current { background: var(--rose); color: white; }
+.rm-num.locked { background: rgba(184,169,212,0.2); color: var(--text-light); }
+
+.rm-info { flex: 1; }
+.rm-title { font-size: 0.85rem; font-weight: 500; color: var(--text-dark); margin-bottom: 2px; }
+.rm-desc { font-size: 0.75rem; color: var(--text-light); }
+
+.rm-status {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 500;
+}
+
+.rm-status.done { color: var(--success); }
+.rm-status.current { color: var(--rose); }
+.rm-status.locked { color: var(--text-light); }
+
+/* SECTION HEADERS inside modules */
+.section-tag {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--rose);
+  font-weight: 500;
+  margin-bottom: 12px;
+  display: flex; align-items: center; gap: 8px;
+}
+
+.section-tag::after {
+  content: '';
+  height: 1px;
+  flex: 1;
+  background: linear-gradient(90deg, rgba(232,99,122,0.3) 0%, transparent 100%);
+}
+
+/* DQN Visualizations */
+.epsilon-viz {
+  display: flex; align-items: center; gap: 20px; flex-wrap: wrap;
+}
+
+.eps-bar-wrap { flex: 1; min-width: 200px; }
+
+.eps-label { font-size: 0.75rem; color: var(--text-mid); margin-bottom: 8px; display: flex; justify-content: space-between; }
+
+.eps-track { height: 12px; background: rgba(184,169,212,0.15); border-radius: 99px; overflow: hidden; position: relative; }
+
+.eps-explore { height: 100%; background: linear-gradient(90deg, var(--rose), var(--rose-light)); border-radius: 99px; transition: width 0.5s; }
+
+.replay-entry {
+  display: grid;
+  grid-template-columns: 1fr 1fr 80px 1fr;
+  gap: 10px;
+  padding: 10px 14px;
+  border-bottom: 1px solid rgba(184,169,212,0.12);
+  font-family: 'DM Mono', monospace;
+  font-size: 0.75rem;
+  align-items: center;
+}
+
+.replay-entry:first-child {
+  background: rgba(232,99,122,0.08);
+  font-weight: 500;
+  color: var(--text-dark);
+}
+
+.replay-entry:not(:first-child) { color: var(--text-mid); }
+
+.reward-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 99px;
+  font-size: 0.72rem;
+}
+
+.reward-badge.pos { background: rgba(109,184,138,0.15); color: var(--success); }
+.reward-badge.neg { background: rgba(208,107,107,0.12); color: var(--error); }
+
+/* Module pages hidden by default */
+.module-page { display: none; }
+.module-page.active { display: block; }
+
+/* Responsive */
+@media (max-width: 900px) {
+  .sidebar { width: 220px; }
+  .main { margin-left: 220px; padding: 24px 22px; max-width: calc(100vw - 220px); }
+}
+
+/* Comparison table */
+.compare-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+
+.compare-table th {
+  background: linear-gradient(135deg, rgba(232,99,122,0.12), rgba(184,169,212,0.12));
+  padding: 11px 14px;
+  text-align: left;
+  font-size: 0.72rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--purple);
+  border-bottom: 2px solid var(--border);
+}
+
+.compare-table td {
+  padding: 11px 14px;
+  border-bottom: 1px solid rgba(184,169,212,0.12);
+  color: var(--text-mid);
+  vertical-align: top;
+  line-height: 1.5;
+}
+
+.compare-table tr:last-child td { border-bottom: none; }
+
+.tag-good { display: inline-block; padding: 2px 8px; border-radius: 99px; background: rgba(109,184,138,0.12); color: var(--success); font-size: 0.72rem; }
+.tag-bad { display: inline-block; padding: 2px 8px; border-radius: 99px; background: rgba(208,107,107,0.1); color: var(--error); font-size: 0.72rem; }
+.tag-neutral { display: inline-block; padding: 2px 8px; border-radius: 99px; background: rgba(184,169,212,0.15); color: var(--purple); font-size: 0.72rem; }
+
+/* Simple chart */
+.bar-chart { display: flex; align-items: flex-end; gap: 14px; height: 120px; padding: 0 10px; border-bottom: 1px solid var(--border); }
+
+.bar-item { display: flex; flex-direction: column; align-items: center; gap: 6px; flex: 1; }
+
+.bar { width: 100%; border-radius: 4px 4px 0 0; transition: height 0.8s cubic-bezier(.4,0,.2,1); background: linear-gradient(180deg, var(--rose-light) 0%, var(--rose) 100%); min-width: 30px; }
+
+.bar-label { font-size: 0.68rem; color: var(--text-light); text-align: center; margin-top: 6px; }
+.bar-val { font-size: 0.72rem; font-family: 'DM Mono', monospace; color: var(--text-mid); }
+
+/* Locked module */
+.locked-module {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 40px;
+  text-align: center;
+}
+
+.lock-big { font-size: 3rem; margin-bottom: 16px; opacity: 0.35; }
+
+.lock-msg {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.3rem;
+  color: var(--text-mid);
+  margin-bottom: 8px;
+}
+
+.lock-sub { font-size: 0.83rem; color: var(--text-light); }
+
+/* Final page */
+.final-banner {
+  background: linear-gradient(135deg, var(--purple-deep) 0%, #3d2d4e 100%);
+  border-radius: var(--radius);
+  padding: 48px;
+  text-align: center;
+  color: white;
+  margin-bottom: 24px;
+}
+
+.final-quote {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.6rem;
+  font-weight: 300;
+  font-style: italic;
+  line-height: 1.5;
+  max-width: 560px;
+  margin: 0 auto 24px;
+  color: rgba(255,255,255,0.9);
+}
+
+.final-xp {
+  font-family: 'DM Mono', monospace;
+  font-size: 2.5rem;
+  color: var(--rose-light);
+  font-weight: 500;
+  margin-bottom: 6px;
+}
+
+.final-xp-label { font-size: 0.75rem; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 24px; }
+
+/* Scrollable content area */
+.scroll-content { overflow-y: auto; }
+
+/* Multi-choice reset */
+.quiz-done-msg { display: none; font-size: 0.8rem; color: var(--success); font-weight: 500; margin-top: 8px; }
+.quiz-done-msg.visible { display: block; }
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-header">
+    <div class="lab-title">Deep RL Lab</div>
+    <div class="lab-subtitle">Laboratoire Interactif</div>
+  </div>
+  <div class="sidebar-xp">
+    <div class="xp-label">
+      <span>Progression</span>
+      <span id="xp-display">0 XP</span>
+    </div>
+    <div class="xp-bar-outer">
+      <div class="xp-bar-inner" id="xp-bar" style="width:0%"></div>
+    </div>
+  </div>
+  <nav class="nav" id="sidebar-nav"></nav>
+</aside>
+
+<!-- MAIN CONTENT -->
+<main class="main">
+  <div id="pages">
+
+    <!-- MODULE 0: DASHBOARD -->
+    <div class="module-page active" id="page-0">
+      <div class="module-header">
+        <div class="module-tag">Tableau de Bord</div>
+        <div class="module-title">Parcours d'Apprentissage</div>
+        <div class="module-desc">Explorez les concepts du Deep Reinforcement Learning à travers des expériences interactives, des visualisations et des quiz conceptuels.</div>
+      </div>
+
+      <!-- HOW IT WORKS -->
+      <div class="card" style="border-left:3px solid var(--rose);background:linear-gradient(135deg,rgba(232,99,122,0.04),rgba(184,169,212,0.06))">
+        <div class="card-title"><div class="icon icon-rose">📖</div>Comment fonctionne cette plateforme ?</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;margin-bottom:18px">
+          <div style="display:flex;gap:12px;align-items:flex-start">
+            <div style="width:28px;height:28px;border-radius:50%;background:var(--rose);color:white;display:flex;align-items:center;justify-content:center;font-size:0.78rem;font-weight:600;flex-shrink:0">1</div>
+            <div><div style="font-size:0.82rem;font-weight:500;color:var(--text-dark);margin-bottom:3px">Lisez les concepts</div><div style="font-size:0.78rem;color:var(--text-mid);line-height:1.5">Chaque module commence par les notions fondamentales, courtes et directes.</div></div>
+          </div>
+          <div style="display:flex;gap:12px;align-items:flex-start">
+            <div style="width:28px;height:28px;border-radius:50%;background:var(--purple);color:white;display:flex;align-items:center;justify-content:center;font-size:0.78rem;font-weight:600;flex-shrink:0">2</div>
+            <div><div style="font-size:0.82rem;font-weight:500;color:var(--text-dark);margin-bottom:3px">Interagissez avec le simulateur</div><div style="font-size:0.78rem;color:var(--text-mid);line-height:1.5">Vous configurez, vous lancez, vous observez. Vous entraînez l'agent — pas l'inverse.</div></div>
+          </div>
+          <div style="display:flex;gap:12px;align-items:flex-start">
+            <div style="width:28px;height:28px;border-radius:50%;background:var(--lavender);color:white;display:flex;align-items:center;justify-content:center;font-size:0.78rem;font-weight:600;flex-shrink:0">3</div>
+            <div><div style="font-size:0.82rem;font-weight:500;color:var(--text-dark);margin-bottom:3px">Répondez au quiz — chaque bonne réponse vaut 50 XP</div><div style="font-size:0.78rem;color:var(--text-mid);line-height:1.5">3 questions par module. Votre score final (ex : 2/3 = 100 XP · 67%) s'affiche à la complétion. Pas de pénalité — mais pas de triche non plus 😉</div></div>
+          </div>
+          <div style="display:flex;gap:12px;align-items:flex-start">
+            <div style="width:28px;height:28px;border-radius:50%;background:var(--success);color:white;display:flex;align-items:center;justify-content:center;font-size:0.78rem;font-weight:600;flex-shrink:0">4</div>
+            <div><div style="font-size:0.82rem;font-weight:500;color:var(--text-dark);margin-bottom:3px">Déverrouillez le suivant — quel que soit votre score</div><div style="font-size:0.78rem;color:var(--text-mid);line-height:1.5">Le module suivant se débloque dès que les 3 questions sont répondues. L'objectif : comprendre, pas mémoriser. Votre score XP reflète votre maîtrise.</div></div>
+          </div>
+        </div>
+        <div class="note info" style="margin-top:0">
+          <span class="note-label">Système de score</span>
+          <span>Chaque module vaut jusqu'à <strong>150 XP</strong> (3 × 50). Score total max : <strong>1 350 XP</strong>. Votre pourcentage de bonnes réponses s'affiche dans chaque bannière de complétion — c'est votre note finale.</span>
+        </div>
+      </div>
+
+      <div class="dash-grid">
+        <div class="dash-stat">
+          <div class="dash-stat-num" id="dash-xp" style="font-size:1.5rem">0 <span style="font-size:1rem;color:var(--text-light);font-family:'DM Sans',sans-serif">/ 1 350</span></div>
+          <div class="dash-stat-label">Score XP</div>
+          <div style="margin-top:6px;font-family:'DM Mono',monospace;font-size:0.88rem;color:var(--rose);font-weight:500" id="dash-grade">—</div>
+        </div>
+        <div class="dash-stat">
+          <div class="dash-stat-num" id="dash-done">0</div>
+          <div class="dash-stat-label">Modules complétés</div>
+        </div>
+        <div class="dash-stat">
+          <div class="dash-stat-num">10</div>
+          <div class="dash-stat-label">Modules au total</div>
+        </div>
+        <div class="dash-stat">
+          <div class="dash-stat-num" id="dash-pct">0%</div>
+          <div class="dash-stat-label">Avancement global</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">
+          <div class="icon icon-lavender">🗺️</div>
+          Parcours d'apprentissage
+        </div>
+        <div class="roadmap" id="roadmap"></div>
+      </div>
+
+      <!-- SIGNATURE -->
+      <div id="author-signature" style="margin-top:32px;padding:28px;border-radius:var(--radius);background:linear-gradient(135deg,rgba(232,99,122,0.06),rgba(184,169,212,0.10));border:1px solid rgba(232,99,122,0.18);text-align:center;position:relative;overflow:hidden">
+        <canvas id="sig-canvas" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none"></canvas>
+        <div style="position:relative;z-index:1">
+          <div style="font-size:1.05rem;color:var(--text-light);font-style:italic;font-family:'Cormorant Garamond',serif;margin-bottom:6px;letter-spacing:0.04em">Créé avec passion par</div>
+          <div style="font-family:'Cormorant Garamond',serif;font-size:2rem;font-weight:600;color:var(--rose);letter-spacing:0.06em;line-height:1.1">IHSANE FATHI</div>
+          <div style="font-size:0.72rem;color:var(--lavender);text-transform:uppercase;letter-spacing:0.18em;margin-top:4px">Auteure · Deep RL Lab</div>
+          <div style="margin-top:12px;font-size:1.3rem;letter-spacing:0.2em" id="sig-emoji">🦋 🌹 🦋</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODULE 1: FONDATIONS -->
+    <div class="module-page" id="page-1">
+      <div class="module-header">
+        <div class="module-tag">Module 1</div>
+        <div class="module-title">Fondations du Deep RL</div>
+        <div class="module-desc">Comprendre les éléments fondamentaux qui constituent tout système d'apprentissage par renforcement.</div>
+      </div>
+
+      <!-- CONCEPTS -->
+      <div class="card">
+        <div class="section-tag">Concepts fondamentaux</div>
+        <div class="concepts-grid">
+          <div class="concept-item">
+            <div class="concept-term">Agent</div>
+            <div class="concept-def">L'entité qui apprend et prend des décisions. Il observe son environnement et choisit des actions.</div>
+          </div>
+          <div class="concept-item">
+            <div class="concept-term">Environnement</div>
+            <div class="concept-def">Le monde dans lequel l'agent évolue. Il répond aux actions de l'agent et génère un nouvel état.</div>
+          </div>
+          <div class="concept-item">
+            <div class="concept-term">État (s)</div>
+            <div class="concept-def">La représentation de la situation actuelle perçue par l'agent. Ex : position d'un robot.</div>
+          </div>
+          <div class="concept-item">
+            <div class="concept-term">Action (a)</div>
+            <div class="concept-def">Ce que l'agent peut faire dans un état donné. Ex : avancer, reculer, tourner.</div>
+          </div>
+          <div class="concept-item">
+            <div class="concept-term">Récompense (r)</div>
+            <div class="concept-def">Signal numérique indiquant si l'action était bonne (+) ou mauvaise (−). L'agent cherche à maximiser la récompense cumulée.</div>
+          </div>
+          <div class="concept-item">
+            <div class="concept-term">Politique (π)</div>
+            <div class="concept-def">La stratégie de l'agent : pour chaque état, quelle action choisir ? C'est ce que l'agent apprend.</div>
+          </div>
+        </div>
+
+        <div class="note info" style="margin-top:16px">
+          <span class="note-label">À retenir</span>
+          <span>Le cycle RL est : <strong>État → Action → Récompense → Nouvel état</strong>. Ce cycle se répète jusqu'à ce que l'agent apprenne une politique optimale.</span>
+        </div>
+      </div>
+
+      <!-- LAB -->
+      <div class="card">
+        <div class="card-title">
+          <div class="icon icon-rose">🤖</div>
+          Lab — Robot d'Entrepôt
+        </div>
+        <p style="font-size:0.83rem;color:var(--text-mid);margin-bottom:16px;line-height:1.6">
+          Avant de lancer la simulation, <strong>configurez la fonction de récompense</strong>. Vos choix déterminent comment l'agent sera entraîné.
+        </p>
+
+        <!-- REWARD CONFIGURATOR -->
+        <div id="lab1-configurator" style="background:rgba(124,111,160,0.07);border:1px solid rgba(124,111,160,0.2);border-radius:var(--radius-sm);padding:20px;margin-bottom:16px">
+          <div class="section-tag" style="margin-bottom:14px">⚙️ Configurer la fonction de récompense</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px">
+            <div>
+              <label style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--purple);font-weight:500;display:block;margin-bottom:6px">🎯 Récompense objectif</label>
+              <div style="display:flex;align-items:center;gap:10px">
+                <input type="range" id="rw-goal" min="10" max="200" value="100" step="10" style="flex:1;accent-color:var(--rose)">
+                <span id="rw-goal-val" style="font-family:'DM Mono',monospace;font-size:0.88rem;color:var(--success);min-width:40px;text-align:right">+100</span>
+              </div>
+            </div>
+            <div>
+              <label style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--purple);font-weight:500;display:block;margin-bottom:6px">💥 Pénalité obstacle</label>
+              <div style="display:flex;align-items:center;gap:10px">
+                <input type="range" id="rw-obstacle" min="0" max="100" value="50" step="5" style="flex:1;accent-color:var(--error)">
+                <span id="rw-obstacle-val" style="font-family:'DM Mono',monospace;font-size:0.88rem;color:var(--error);min-width:40px;text-align:right">−50</span>
+              </div>
+            </div>
+            <div>
+              <label style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--purple);font-weight:500;display:block;margin-bottom:6px">🔋 Coût batterie (par pas)</label>
+              <div style="display:flex;align-items:center;gap:10px">
+                <input type="range" id="rw-battery" min="0" max="10" value="1" step="1" style="flex:1;accent-color:var(--lavender)">
+                <span id="rw-battery-val" style="font-family:'DM Mono',monospace;font-size:0.88rem;color:var(--text-mid);min-width:40px;text-align:right">−1</span>
+              </div>
+            </div>
+            <div>
+              <label style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--purple);font-weight:500;display:block;margin-bottom:6px">⏱ Pénalité temporelle (max)</label>
+              <div style="display:flex;align-items:center;gap:10px">
+                <input type="range" id="rw-time" min="0" max="10" value="2" step="1" style="flex:1;accent-color:var(--lavender)">
+                <span id="rw-time-val" style="font-family:'DM Mono',monospace;font-size:0.88rem;color:var(--text-mid);min-width:40px;text-align:right">−2</span>
+              </div>
+            </div>
+          </div>
+          <div style="background:rgba(0,0,0,0.06);border-radius:6px;padding:10px 14px;font-family:'DM Mono',monospace;font-size:0.75rem;color:var(--text-mid);margin-bottom:12px" id="rw-preview">
+            Objectif = +100 &nbsp;|&nbsp; Obstacle = −50 &nbsp;|&nbsp; Batterie = −1/pas &nbsp;|&nbsp; Temps = −2 max
+          </div>
+          <button class="btn btn-primary" id="lab1-launch" style="width:100%;justify-content:center">▶ Lancer le Lab avec ces récompenses</button>
+        </div>
+
+        <!-- SIMULATION AREA (hidden until configured) -->
+        <div id="lab1-sim" style="display:none">
+          <div class="lab-area">
+            <div class="lab-controls">
+              <button class="lab-btn lab-btn-run" id="lab1-run">⏸ Pause</button>
+              <button class="lab-btn lab-btn-reset" id="lab1-reset">↺ Reconfigurer</button>
+            </div>
+            <div class="grid-container">
+              <div>
+                <div class="warehouse-grid" id="warehouse-grid" style="grid-template-columns: repeat(5, 44px)"></div>
+              </div>
+              <div class="lab-stats">
+                <div class="stat-row">
+                  <div class="stat-label">Récompense cumulée</div>
+                  <div class="stat-value" id="lab1-reward">0</div>
+                </div>
+                <div class="stat-row">
+                  <div class="stat-label">Étapes</div>
+                  <div class="stat-value" id="lab1-steps">0</div>
+                </div>
+                <div class="stat-row">
+                  <div class="stat-label">Épisodes</div>
+                  <div class="stat-value" id="lab1-episodes">0</div>
+                </div>
+                <div class="log-area" id="lab1-log"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- POST-SIMULATION REFLECTION -->
+          <div id="lab1-reflection" style="display:none;margin-top:14px">
+            <div class="note success">
+              <span class="note-label">Observation</span>
+              <span id="lab1-obs-text">L'agent explore de façon aléatoire avec vos paramètres.</span>
+            </div>
+            <div style="background:rgba(124,111,160,0.07);border:1px solid rgba(124,111,160,0.2);border-radius:var(--radius-sm);padding:16px;margin-top:12px">
+              <div style="font-size:0.8rem;font-weight:500;color:var(--purple);margin-bottom:10px">🤔 Pourquoi ce comportement est-il apparu ?</div>
+              <div style="font-size:0.82rem;color:var(--text-mid);line-height:1.6" id="lab1-explanation"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- QUIZ -->
+      <div class="card">
+        <div class="section-tag">Quiz</div>
+        <div id="quiz-m1"></div>
+      </div>
+
+      <!-- RÉSULTAT -->
+      <div class="card">
+        <div class="section-tag">Résultat</div>
+        <div class="note success">
+          <span class="note-label">Acquis</span>
+          <span>La fonction de récompense influence directement le comportement de l'agent. Un mauvais design de récompense mène à des comportements non désirés.</span>
+        </div>
+        <div id="m1-complete" class="module-complete">
+          <div class="mc-title">Module 1 complété ✓</div>
+          <div class="mc-xp">+150 XP gagnés</div>
+          <div class="mc-outcome">«&nbsp;Je comprends les éléments fondamentaux du Deep RL : agent, environnement, état, action, récompense et politique.&nbsp;»</div>
+          <button class="btn btn-primary" onclick="goToModule(2)">Module suivant →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODULE 2: RÉSEAUX DE NEURONES -->
+    <div class="module-page" id="page-2">
+      <div class="module-header">
+        <div class="module-tag">Module 2</div>
+        <div class="module-title">Approximation par Réseaux de Neurones</div>
+        <div class="module-desc">Comprendre pourquoi et comment les réseaux de neurones sont utilisés pour approximer les fonctions de valeur.</div>
+      </div>
+
+      <!-- CONCEPTS -->
+      <div class="card">
+        <div class="section-tag">Concepts</div>
+        <div class="concepts-grid">
+          <div class="concept-item">
+            <div class="concept-term">Entrée (Input)</div>
+            <div class="concept-def">Le vecteur d'état observé par l'agent. Ex : pixels d'un écran, position d'un objet.</div>
+          </div>
+          <div class="concept-item">
+            <div class="concept-term">Q-Valeur Q(s,a)</div>
+            <div class="concept-def">La valeur estimée d'une action <em>a</em> dans l'état <em>s</em>. Elle représente la récompense future cumulée attendue.</div>
+          </div>
+          <div class="concept-item">
+            <div class="concept-term">Réseau neuronal</div>
+            <div class="concept-def">Approximateur de fonction : il prédit Q(s,a) pour toutes les actions simultanément à partir de l'état <em>s</em>.</div>
+          </div>
+          <div class="concept-item">
+            <div class="concept-term">Sortie (Output)</div>
+            <div class="concept-def">Un vecteur de Q-valeurs, une par action possible. L'action choisie est celle avec la Q-valeur maximale.</div>
+          </div>
+        </div>
+
+        <div class="note info" style="margin-top:16px">
+          <span class="note-label">Pourquoi un réseau ?</span>
+          <span>Les Q-Tables ne peuvent pas stocker les Q-valeurs pour des espaces d'états continus ou très grands (ex : 10⁸⁴ états pour Atari). Le réseau de neurones <strong>généralise</strong> : il apprend une fonction continue au lieu de mémoriser chaque état.</span>
+        </div>
+      </div>
+
+      <!-- VISUALISATION RÉSEAU -->
+      <div class="card">
+        <div class="card-title">
+          <div class="icon icon-lavender">🧠</div>
+          Simulateur — Contrôlez l'état de l'agent
+        </div>
+        <p style="font-size:0.83rem;color:var(--text-mid);margin-bottom:16px;line-height:1.6">
+          Définissez la situation de l'agent. Le réseau prédit ensuite les Q-valeurs. <strong>Testez différents scénarios</strong> et observez comment les décisions changent.
+        </p>
+
+        <!-- STATE CONTROLS -->
+        <div style="background:rgba(184,169,212,0.08);border:1px solid rgba(184,169,212,0.2);border-radius:var(--radius-sm);padding:18px;margin-bottom:16px">
+          <div class="section-tag" style="margin-bottom:14px">🎮 Configurer l'état de l'agent</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+            <div>
+              <label style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--purple);font-weight:500;display:block;margin-bottom:6px">📏 Distance jusqu'à l'objectif</label>
+              <select id="nn-distance" style="width:100%;padding:8px 10px;border-radius:6px;border:1px solid var(--border);background:white;font-size:0.82rem;color:var(--text-dark)">
+                <option value="proche">Proche (1–2 cases)</option>
+                <option value="moyen" selected>Moyen (3–5 cases)</option>
+                <option value="loin">Loin (6+ cases)</option>
+              </select>
+            </div>
+            <div>
+              <label style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--purple);font-weight:500;display:block;margin-bottom:6px">🧭 Direction de l'objectif</label>
+              <select id="nn-direction" style="width:100%;padding:8px 10px;border-radius:6px;border:1px solid var(--border);background:white;font-size:0.82rem;color:var(--text-dark)">
+                <option value="avant" selected>Devant</option>
+                <option value="gauche">À gauche</option>
+                <option value="droite">À droite</option>
+                <option value="derriere">Derrière</option>
+              </select>
+            </div>
+            <div>
+              <label style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--purple);font-weight:500;display:block;margin-bottom:6px">🔋 Niveau de batterie</label>
+              <select id="nn-battery" style="width:100%;padding:8px 10px;border-radius:6px;border:1px solid var(--border);background:white;font-size:0.82rem;color:var(--text-dark)">
+                <option value="pleine" selected>Pleine (>70%)</option>
+                <option value="faible">Faible (20–70%)</option>
+                <option value="critique">Critique (<20%)</option>
+              </select>
+            </div>
+            <div>
+              <label style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--purple);font-weight:500;display:block;margin-bottom:6px">⚠️ Obstacle détecté</label>
+              <select id="nn-obstacle" style="width:100%;padding:8px 10px;border-radius:6px;border:1px solid var(--border);background:white;font-size:0.82rem;color:var(--text-dark)">
+                <option value="non" selected>Non</option>
+                <option value="oui">Oui — devant l'agent</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- PREDICTION QUESTION -->
+          <div style="background:rgba(232,99,122,0.07);border:1px solid rgba(232,99,122,0.2);border-radius:6px;padding:14px;margin-bottom:12px">
+            <div style="font-size:0.8rem;font-weight:500;color:var(--rose);margin-bottom:8px">🤔 Quelle action semble la plus logique dans ce scénario ?</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap" id="nn-prediction-btns">
+              <button class="nn-pred-btn" data-action="Avancer" style="padding:6px 14px;border-radius:99px;font-size:0.78rem;cursor:pointer;border:1px solid var(--border);background:rgba(255,255,255,0.7);color:var(--text-mid);transition:all 0.18s;font-family:'DM Sans',sans-serif">Avancer</button>
+              <button class="nn-pred-btn" data-action="Gauche" style="padding:6px 14px;border-radius:99px;font-size:0.78rem;cursor:pointer;border:1px solid var(--border);background:rgba(255,255,255,0.7);color:var(--text-mid);transition:all 0.18s;font-family:'DM Sans',sans-serif">Gauche</button>
+              <button class="nn-pred-btn" data-action="Droite" style="padding:6px 14px;border-radius:99px;font-size:0.78rem;cursor:pointer;border:1px solid var(--border);background:rgba(255,255,255,0.7);color:var(--text-mid);transition:all 0.18s;font-family:'DM Sans',sans-serif">Droite</button>
+            </div>
+          </div>
+
+          <button class="btn btn-primary" id="nn-compute" style="width:100%;justify-content:center">🧠 Révéler la prédiction du réseau</button>
+        </div>
+
+        <!-- NETWORK VIZ -->
+        <div class="nn-viz" id="nn-viz">
+          <div class="nn-layer">
+            <div class="nn-layer-label">Entrées<br><small style="color:var(--text-light);font-size:0.6rem">État de l'agent</small></div>
+            <div class="nn-nodes" id="nn-inputs">
+              <div class="nn-node input-node" id="nn-in-dist">d</div>
+              <div class="nn-node input-node" id="nn-in-dir">θ</div>
+              <div class="nn-node input-node" id="nn-in-bat">🔋</div>
+              <div class="nn-node input-node" id="nn-in-obs">⚠</div>
+            </div>
+          </div>
+          <div class="nn-arrow">→</div>
+          <div class="nn-layer">
+            <div class="nn-layer-label">Couche cachée<br><small style="color:var(--text-light);font-size:0.6rem">Transformation</small></div>
+            <div class="nn-nodes">
+              <div class="nn-node hidden-node">h₁</div>
+              <div class="nn-node hidden-node">h₂</div>
+              <div class="nn-node hidden-node">h₃</div>
+              <div class="nn-node hidden-node">h₄</div>
+              <div class="nn-node hidden-node">h₅</div>
+            </div>
+          </div>
+          <div class="nn-arrow">→</div>
+          <div class="nn-layer">
+            <div class="nn-layer-label">Sorties<br><small style="color:var(--text-light);font-size:0.6rem">Q-Valeurs</small></div>
+            <div class="nn-nodes" id="nn-outputs">
+              <div class="nn-node output-node" id="out-forward">?</div>
+              <div class="nn-node output-node" id="out-left">?</div>
+              <div class="nn-node output-node" id="out-right">?</div>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;gap:12px;margin-top:16px;flex-wrap:wrap">
+          <div style="text-align:center;flex:1;min-width:80px">
+            <div style="font-size:0.65rem;color:var(--text-light);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px">Avant</div>
+            <div style="font-family:'DM Mono',monospace;font-size:1.1rem;color:var(--success)" id="qv-forward">—</div>
+          </div>
+          <div style="text-align:center;flex:1;min-width:80px">
+            <div style="font-size:0.65rem;color:var(--text-light);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px">Gauche</div>
+            <div style="font-family:'DM Mono',monospace;font-size:1.1rem;color:var(--text-mid)" id="qv-left">—</div>
+          </div>
+          <div style="text-align:center;flex:1;min-width:80px">
+            <div style="font-size:0.65rem;color:var(--text-light);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px">Droite</div>
+            <div style="font-family:'DM Mono',monospace;font-size:1.1rem;color:var(--text-mid)" id="qv-right">—</div>
+          </div>
+        </div>
+        <div class="btn-group">
+          <button class="btn btn-outline" id="nn-reset-btn">Réinitialiser</button>
+        </div>
+        <div class="note warning" id="nn-action-note" style="display:none;margin-top:12px">
+          <span class="note-label">Prédiction du réseau</span>
+          <span id="nn-action-text"></span>
+        </div>
+      </div>
+
+      <!-- Q-VALUE EXERCISE -->
+      <div class="card">
+        <div class="card-title">
+          <div class="icon icon-rose">🎯</div>
+          Exercice de Q-Valeurs
+        </div>
+        <p style="font-size:0.83rem;color:var(--text-mid);margin-bottom:16px;line-height:1.5">Un réseau DQN produit les sorties suivantes pour un état donné :</p>
+
+        <table class="q-table" style="margin-bottom:16px">
+          <thead>
+            <tr><th>Action</th><th>Q-Valeur</th><th>Interprétation</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Avancer</td><td>8.2</td><td>Très bonne action attendue</td></tr>
+            <tr class="best-action"><td>⭐ Avancer</td><td><strong>8.2</strong></td><td>→ Action sélectionnée (argmax)</td></tr>
+            <tr><td>Gauche</td><td>1.4</td><td>Mauvaise action dans ce contexte</td></tr>
+            <tr><td>Droite</td><td>5.6</td><td>Action correcte mais sous-optimale</td></tr>
+          </tbody>
+        </table>
+
+        <div class="note info">
+          <span class="note-label">Erreur fréquente</span>
+          <span>On ne choisit pas l'action avec la récompense immédiate la plus haute. On choisit celle avec la <strong>Q-valeur la plus haute</strong>, qui représente la récompense future cumulée.</span>
+        </div>
+      </div>
+
+      <!-- QUIZ -->
+      <div class="card">
+        <div class="section-tag">Quiz</div>
+        <div id="quiz-m2"></div>
+      </div>
+
+      <!-- RÉSULTAT -->
+      <div class="card">
+        <div class="section-tag">Résultat</div>
+        <div class="note success">
+          <span class="note-label">Acquis</span>
+          <span>Les réseaux de neurones permettent d'approcher des fonctions de valeur complexes dans des espaces d'états continus ou très grands.</span>
+        </div>
+        <div id="m2-complete" class="module-complete">
+          <div class="mc-title">Module 2 complété ✓</div>
+          <div class="mc-xp">+150 XP gagnés</div>
+          <div class="mc-outcome">«&nbsp;Je comprends comment un réseau de neurones approxime Q(s,a) et comment l'action est sélectionnée.&nbsp;»</div>
+          <button class="btn btn-primary" onclick="goToModule(3)">Module suivant →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODULE 3: DQN -->
+    <div class="module-page" id="page-3">
+      <div class="module-header">
+        <div class="module-tag">Module 3</div>
+        <div class="module-title">Deep Q-Networks (DQN)</div>
+        <div class="module-desc">Comprendre pourquoi DQN a été créé, comment il fonctionne, et les défis qu'il résout par rapport aux Q-Tables classiques.</div>
+      </div>
+
+      <!-- CONCEPTS -->
+      <div class="card">
+        <div class="section-tag">Pourquoi DQN existe</div>
+        <div class="concepts-grid">
+          <div class="concept-item">
+            <div class="concept-term">Limite des Q-Tables</div>
+            <div class="concept-def">Pour Atari Breakout, l'espace d'états est ≈ 10⁸⁴. Impossible de stocker une Q-Table de cette taille.</div>
+          </div>
+          <div class="concept-item">
+            <div class="concept-term">ε-Greedy</div>
+            <div class="concept-def">Avec probabilité ε : action aléatoire (exploration). Avec probabilité 1−ε : meilleure action connue (exploitation).</div>
+          </div>
+          <div class="concept-item">
+            <div class="concept-term">Bellman Update</div>
+            <div class="concept-def">Q(s,a) ← r + γ · max Q(s',a'). L'agent met à jour ses estimations de valeur à chaque étape.</div>
+          </div>
+          <div class="concept-item">
+            <div class="concept-term">Loss Function</div>
+            <div class="concept-def">MSE entre Q-valeur prédite et cible de Bellman. La rétropropagation ajuste les poids du réseau.</div>
+          </div>
+        </div>
+
+        <div class="note info" style="margin-top:16px">
+          <span class="note-label">Architecture DQN</span>
+          <span>DQN (DeepMind, 2013) a joué 49 jeux Atari directement depuis les pixels bruts, atteignant un niveau humain ou supérieur sur 29 d'entre eux. C'est le moment fondateur du Deep RL moderne.</span>
+        </div>
+      </div>
+
+      <!-- EXPLORATION VS EXPLOITATION -->
+      <div class="card">
+        <div class="card-title">
+          <div class="icon icon-rose">⚖️</div>
+          Exploration vs Exploitation — Contrôlez ε
+        </div>
+        <p style="font-size:0.83rem;color:var(--text-mid);margin-bottom:18px;line-height:1.5">
+          Vous contrôlez ε. Choisissez une valeur, lancez la simulation, et observez l'impact sur le comportement de l'agent.
+        </p>
+
+        <!-- EPSILON SELECTOR -->
+        <div style="background:rgba(184,169,212,0.08);border:1px solid rgba(184,169,212,0.2);border-radius:var(--radius-sm);padding:18px;margin-bottom:16px">
+          <div class="section-tag" style="margin-bottom:12px">🎮 Choisir la valeur de ε</div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px" id="eps-preset-btns">
+            <button class="eps-preset-btn" data-eps="1.0" style="padding:8px 16px;border-radius:var(--radius-sm);font-size:0.8rem;cursor:pointer;border:1px solid var(--border);background:rgba(232,99,122,0.1);color:var(--rose);font-weight:500;font-family:'DM Sans',sans-serif;transition:all 0.18s">ε = 1.0<br><span style="font-size:0.68rem;font-weight:400;color:var(--text-light)">Exploration totale</span></button>
+            <button class="eps-preset-btn" data-eps="0.5" style="padding:8px 16px;border-radius:var(--radius-sm);font-size:0.8rem;cursor:pointer;border:1px solid var(--border);background:rgba(184,169,212,0.1);color:var(--purple);font-weight:500;font-family:'DM Sans',sans-serif;transition:all 0.18s">ε = 0.5<br><span style="font-size:0.68rem;font-weight:400;color:var(--text-light)">Équilibre</span></button>
+            <button class="eps-preset-btn" data-eps="0.1" style="padding:8px 16px;border-radius:var(--radius-sm);font-size:0.8rem;cursor:pointer;border:1px solid var(--border);background:rgba(109,184,138,0.1);color:var(--success);font-weight:500;font-family:'DM Sans',sans-serif;transition:all 0.18s">ε = 0.1<br><span style="font-size:0.68rem;font-weight:400;color:var(--text-light)">Quasi-exploitation</span></button>
+            <button class="eps-preset-btn" data-eps="0.01" style="padding:8px 16px;border-radius:var(--radius-sm);font-size:0.8rem;cursor:pointer;border:1px solid var(--border);background:rgba(124,111,160,0.1);color:var(--purple-deep);font-weight:500;font-family:'DM Sans',sans-serif;transition:all 0.18s">ε = 0.01<br><span style="font-size:0.68rem;font-weight:400;color:var(--text-light)">Exploitation pure</span></button>
+          </div>
+
+          <!-- PREDICTION PROMPT -->
+          <div style="background:rgba(232,99,122,0.07);border:1px solid rgba(232,99,122,0.2);border-radius:6px;padding:12px 14px;margin-bottom:12px" id="eps-question-box" style="display:none">
+            <div style="font-size:0.8rem;font-weight:500;color:var(--rose);margin-bottom:6px" id="eps-question-text">🤔 Avec ε = 1.0, quel comportement attendez-vous ?</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap" id="eps-pred-btns">
+              <button class="eps-pred-opt" data-val="exploration" style="padding:5px 12px;border-radius:99px;font-size:0.75rem;cursor:pointer;border:1px solid var(--border);background:rgba(255,255,255,0.7);color:var(--text-mid);font-family:'DM Sans',sans-serif;transition:all 0.15s">Exploration aléatoire</button>
+              <button class="eps-pred-opt" data-val="exploitation" style="padding:5px 12px;border-radius:99px;font-size:0.75rem;cursor:pointer;border:1px solid var(--border);background:rgba(255,255,255,0.7);color:var(--text-mid);font-family:'DM Sans',sans-serif;transition:all 0.15s">Exploitation de la politique</button>
+              <button class="eps-pred-opt" data-val="convergence" style="padding:5px 12px;border-radius:99px;font-size:0.75rem;cursor:pointer;border:1px solid var(--border);background:rgba(255,255,255,0.7);color:var(--text-mid);font-family:'DM Sans',sans-serif;transition:all 0.15s">Convergence rapide</button>
+            </div>
+          </div>
+
+          <button class="btn btn-primary" id="eps-simulate" disabled style="width:100%;justify-content:center;opacity:0.5">Sélectionner ε pour lancer la simulation</button>
+        </div>
+
+        <!-- EPSILON VIZ -->
+        <div class="epsilon-viz">
+          <div class="eps-bar-wrap">
+            <div class="eps-label">
+              <span>Exploration (ε = <span id="eps-val">—</span>)</span>
+              <span>Exploitation (1−ε = <span id="exploit-val">—</span>)</span>
+            </div>
+            <div class="eps-track">
+              <div class="eps-explore" id="eps-bar" style="width:0%"></div>
+            </div>
+            <div style="display:flex;justify-content:space-between;margin-top:8px">
+              <span style="font-size:0.7rem;color:var(--text-light)">Début (aléatoire)</span>
+              <span style="font-size:0.7rem;color:var(--text-light)">Fin (maîtrisé)</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="btn-group">
+          <button class="btn btn-outline" id="eps-reset">Réinitialiser</button>
+        </div>
+
+        <div class="note warning" id="eps-note" style="display:none;margin-top:12px">
+          <span class="note-label" id="eps-note-label">Observation</span>
+          <span id="eps-note-text">Chargement...</span>
+        </div>
+      </div>
+
+      <!-- REPLAY BUFFER VIEWER -->
+      <div class="card">
+        <div class="card-title">
+          <div class="icon icon-lavender">📦</div>
+          Replay Buffer — Visualisation
+        </div>
+        <p style="font-size:0.83rem;color:var(--text-mid);margin-bottom:16px;line-height:1.5">
+          Le Replay Buffer stocke les transitions passées (s, a, r, s'). Le réseau s'entraîne sur des mini-lots aléatoires de ces transitions.
+        </p>
+        <div style="border-radius:var(--radius-sm);overflow:hidden;border:1px solid var(--border)">
+          <div class="replay-entry" style="background:rgba(124,111,160,0.1)">
+            <span style="font-size:0.68rem;color:var(--purple)">État s</span>
+            <span style="font-size:0.68rem;color:var(--purple)">Action a</span>
+            <span style="font-size:0.68rem;color:var(--purple)">Récompense</span>
+            <span style="font-size:0.68rem;color:var(--purple)">Prochain état s'</span>
+          </div>
+          <div id="replay-entries"></div>
+        </div>
+        <div class="btn-group">
+          <button class="btn btn-secondary" id="replay-add">+ Ajouter une transition</button>
+          <button class="btn btn-outline" id="replay-sample">Échantillonner (mini-lot)</button>
+        </div>
+      </div>
+
+      <!-- QUIZ -->
+      <div class="card">
+        <div class="section-tag">Quiz</div>
+        <div id="quiz-m3"></div>
+      </div>
+
+      <!-- RÉSULTAT -->
+      <div class="card">
+        <div class="section-tag">Résultat</div>
+        <div class="note success">
+          <span class="note-label">Acquis</span>
+          <span>DQN permet de traiter des espaces d'états trop grands pour les Q-Tables classiques, en utilisant un réseau de neurones comme approximateur universel.</span>
+        </div>
+        <div id="m3-complete" class="module-complete">
+          <div class="mc-title">Module 3 complété ✓</div>
+          <div class="mc-xp">+150 XP gagnés</div>
+          <div class="mc-outcome">«&nbsp;Je comprends l'architecture DQN, le mécanisme ε-greedy et l'utilité du Replay Buffer.&nbsp;»</div>
+          <button class="btn btn-primary" onclick="goToModule(4)">Module suivant →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODULES 4-8: LOCKED -->
+    <div class="module-page" id="page-4">
+      <div class="module-header">
+        <div class="module-tag">Module 4</div>
+        <div class="module-title">Techniques d'Optimisation DQN</div>
+        <div class="module-desc">Replay Buffer &amp; Target Network — Stabilisation de l'apprentissage.</div>
+      </div>
+      <div class="card">
+        <div class="section-tag">Concepts — Replay Buffer</div>
+        <div class="concepts-grid">
+          <div class="concept-item">
+            <div class="concept-term">Corrélation temporelle</div>
+            <div class="concept-def">Des transitions consécutives sont fortement corrélées. Entraîner dessus crée un biais et déstabilise le réseau.</div>
+          </div>
+          <div class="concept-item">
+            <div class="concept-term">Mémoire de replay</div>
+            <div class="concept-def">Une file FIFO de capacité N stocke les transitions (s, a, r, s'). Un mini-lot aléatoire est tiré à chaque étape d'entraînement.</div>
+          </div>
+          <div class="concept-item">
+            <div class="concept-term">Avantage clé</div>
+            <div class="concept-def">Brise la corrélation temporelle. Réutilise chaque transition plusieurs fois → meilleure efficacité des données.</div>
+          </div>
+        </div>
+        <div class="note info" style="margin-top:16px">
+          <span class="note-label">À retenir</span>
+          <span>Sans Replay Buffer, le réseau apprend sur des transitions consécutives très similaires, ce qui est équivalent à apprendre le même exemple en boucle — le modèle "oublie" les états passés.</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-tag">Concepts — Target Network</div>
+        <div class="concepts-grid">
+          <div class="concept-item">
+            <div class="concept-term">Problème sans Target</div>
+            <div class="concept-def">La cible de Bellman change à chaque mise à jour du réseau → instabilité : on poursuit une cible mobile.</div>
+          </div>
+          <div class="concept-item">
+            <div class="concept-term">Target Network</div>
+            <div class="concept-def">Une copie du réseau principal, gelée pendant C étapes. Elle sert de cible stable pour calculer le loss.</div>
+          </div>
+          <div class="concept-item">
+            <div class="concept-term">Mise à jour</div>
+            <div class="concept-def">Tous les C pas : θ⁻ ← θ. La cible est rafraîchie périodiquement, pas en continu.</div>
+          </div>
+        </div>
+        <div class="note warning" style="margin-top:16px">
+          <span class="note-label">Erreur fréquente</span>
+          <span>Si C est trop grand, le Target Network devient obsolète. Si C est trop petit, on perd le bénéfice de la stabilité. En pratique, C ≈ 1000 à 10 000 étapes.</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-tag">Visualisation comparative</div>
+        <p style="font-size:0.83rem;color:var(--text-mid);margin-bottom:16px;line-height:1.5">Impact du Target Network sur la stabilité de l'entraînement :</p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;flex-wrap:wrap">
+          <div style="padding:16px;background:rgba(208,107,107,0.08);border-radius:var(--radius-sm);border:1px solid rgba(208,107,107,0.2)">
+            <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--error);margin-bottom:10px">Sans Target Network</div>
+            <div style="font-size:0.8rem;color:var(--text-mid);line-height:1.7">
+              • Cible change à chaque update<br>
+              • Oscillations fréquentes<br>
+              • Divergence possible<br>
+              • Apprentissage instable
+            </div>
+          </div>
+          <div style="padding:16px;background:rgba(109,184,138,0.08);border-radius:var(--radius-sm);border:1px solid rgba(109,184,138,0.2)">
+            <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--success);margin-bottom:10px">Avec Target Network</div>
+            <div style="font-size:0.8rem;color:var(--text-mid);line-height:1.7">
+              • Cible stable pendant C étapes<br>
+              • Convergence plus régulière<br>
+              • Divergence rare<br>
+              • Apprentissage stable
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-tag">Exploration — Réglage de C (Target Network)</div>
+        <p style="font-size:0.83rem;color:var(--text-mid);margin-bottom:14px;line-height:1.5">
+          Choisissez la fréquence de mise à jour du Target Network et observez l'impact sur la stabilité.
+        </p>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px">
+          <button class="tn-preset" data-c="5" style="padding:8px 14px;border-radius:var(--radius-sm);font-size:0.78rem;cursor:pointer;border:1px solid var(--border);background:rgba(208,107,107,0.1);color:var(--error);font-family:'DM Sans',sans-serif;transition:all 0.18s">C = 5<br><span style="font-size:0.68rem;font-weight:400;opacity:0.8">Très fréquent</span></button>
+          <button class="tn-preset" data-c="100" style="padding:8px 14px;border-radius:var(--radius-sm);font-size:0.78rem;cursor:pointer;border:1px solid var(--border);background:rgba(184,169,212,0.1);color:var(--purple);font-family:'DM Sans',sans-serif;transition:all 0.18s">C = 100<br><span style="font-size:0.68rem;font-weight:400;opacity:0.8">Rapide</span></button>
+          <button class="tn-preset" data-c="1000" style="padding:8px 14px;border-radius:var(--radius-sm);font-size:0.78rem;cursor:pointer;border:1px solid var(--border);background:rgba(109,184,138,0.1);color:var(--success);font-family:'DM Sans',sans-serif;transition:all 0.18s">C = 1000<br><span style="font-size:0.68rem;font-weight:400;opacity:0.8">Recommandé</span></button>
+          <button class="tn-preset" data-c="50000" style="padding:8px 14px;border-radius:var(--radius-sm);font-size:0.78rem;cursor:pointer;border:1px solid var(--border);background:rgba(232,99,122,0.08);color:var(--text-mid);font-family:'DM Sans',sans-serif;transition:all 0.18s">C = 50 000<br><span style="font-size:0.68rem;font-weight:400;opacity:0.8">Trop lent</span></button>
+        </div>
+        <div id="tn-result" style="display:none;padding:14px;border-radius:var(--radius-sm);border:1px solid var(--border);background:rgba(255,255,255,0.6)">
+          <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--purple);margin-bottom:8px" id="tn-title">—</div>
+          <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:10px">
+            <div><div style="font-size:0.68rem;color:var(--text-light);margin-bottom:3px">Stabilité</div><div style="font-family:'DM Mono',monospace;font-size:0.9rem" id="tn-stability">—</div></div>
+            <div><div style="font-size:0.68rem;color:var(--text-light);margin-bottom:3px">Vitesse d'apprentissage</div><div style="font-family:'DM Mono',monospace;font-size:0.9rem" id="tn-speed">—</div></div>
+            <div><div style="font-size:0.68rem;color:var(--text-light);margin-bottom:3px">Risque de divergence</div><div style="font-family:'DM Mono',monospace;font-size:0.9rem" id="tn-risk">—</div></div>
+          </div>
+          <div style="font-size:0.82rem;color:var(--text-mid);line-height:1.6" id="tn-explanation"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-tag">Quiz</div>
+        <div id="quiz-m4"></div>
+      </div>
+
+      <div class="card">
+        <div class="section-tag">Résultat</div>
+        <div class="note success">
+          <span class="note-label">Acquis</span>
+          <span>Le Replay Buffer brise la corrélation temporelle. Le Target Network stabilise les cibles d'entraînement. Ensemble, ces deux techniques rendent DQN praticable.</span>
+        </div>
+        <div id="m4-complete" class="module-complete">
+          <div class="mc-title">Module 4 complété ✓</div>
+          <div class="mc-xp">+150 XP gagnés</div>
+          <div class="mc-outcome">«&nbsp;Je comprends comment le Replay Buffer et le Target Network stabilisent l'entraînement DQN.&nbsp;»</div>
+          <button class="btn btn-primary" onclick="goToModule(5)">Module suivant →</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="module-page" id="page-5">
+      <div class="module-header">
+        <div class="module-tag">Module 5</div>
+        <div class="module-title">Algorithmes DQN Avancés</div>
+        <div class="module-desc">Double DQN, Dueling DQN, Prioritized Experience Replay.</div>
+      </div>
+
+      <div class="card">
+        <div class="section-tag">Double DQN</div>
+        <div class="note warning">
+          <span class="note-label">Problème de DQN classique</span>
+          <span>DQN utilise le même réseau pour <em>sélectionner</em> et <em>évaluer</em> l'action. Cela crée un biais de surestimation systématique des Q-valeurs.</span>
+        </div>
+        <div style="margin-top:14px">
+          <table class="compare-table">
+            <thead><tr><th></th><th>DQN classique</th><th>Double DQN</th></tr></thead>
+            <tbody>
+              <tr>
+                <td>Sélection de l'action</td>
+                <td>Réseau principal θ</td>
+                <td>Réseau principal θ</td>
+              </tr>
+              <tr>
+                <td>Évaluation de l'action</td>
+                <td>Réseau principal θ (même)</td>
+                <td>Target Network θ⁻ (différent)</td>
+              </tr>
+              <tr>
+                <td>Biais de surestimation</td>
+                <td><span class="tag-bad">Élevé</span></td>
+                <td><span class="tag-good">Réduit</span></td>
+              </tr>
+              <tr>
+                <td>Performance</td>
+                <td><span class="tag-neutral">Référence</span></td>
+                <td><span class="tag-good">Supérieure</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="note info" style="margin-top:14px">
+          <span class="note-label">Note</span>
+          <span>La formule Double DQN : <code style="font-family:'DM Mono',monospace;font-size:0.8rem">Q_target = r + γ · Q(s', argmax_a Q(s',a; θ); θ⁻)</code>. Le réseau principal choisit l'action, le réseau cible l'évalue.</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-tag">Dueling DQN</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:14px">
+          <div class="concept-item">
+            <div class="concept-term">Value stream V(s)</div>
+            <div class="concept-def">Valeur intrinsèque d'un état, indépendamment de l'action choisie.</div>
+          </div>
+          <div class="concept-item">
+            <div class="concept-term">Advantage stream A(s,a)</div>
+            <div class="concept-def">Avantage relatif d'une action par rapport aux autres dans cet état.</div>
+          </div>
+        </div>
+        <div class="note info">
+          <span class="note-label">Formule</span>
+          <span><code style="font-family:'DM Mono',monospace;font-size:0.8rem">Q(s,a) = V(s) + A(s,a) − mean(A(s,·))</code> — Le réseau apprend séparément "combien vaut cet état" et "quelle action est la meilleure dans cet état".</span>
+        </div>
+        <div class="note success" style="margin-top:10px">
+          <span class="note-label">Avantage</span>
+          <span>Très efficace quand beaucoup d'états ont des actions équivalentes. Le réseau apprend V(s) sans avoir besoin d'observer toutes les actions.</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-tag">Prioritized Experience Replay (PER)</div>
+        <div class="note info">
+          <span class="note-label">Idée</span>
+          <span>Toutes les transitions ne sont pas également informatives. PER tire les transitions avec une probabilité proportionnelle à leur erreur TD (|δ|). Les transitions surprenantes sont apprises plus souvent.</span>
+        </div>
+        <div style="margin-top:14px">
+          <table class="compare-table">
+            <thead><tr><th>Méthode</th><th>Stratégie d'échantillonnage</th><th>Efficacité</th></tr></thead>
+            <tbody>
+              <tr><td>Replay Buffer classique</td><td>Uniforme (aléatoire)</td><td><span class="tag-neutral">Standard</span></td></tr>
+              <tr><td>PER</td><td>Proportionnel à |δ| (erreur TD)</td><td><span class="tag-good">Supérieure</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-tag">Quiz</div>
+        <div id="quiz-m5"></div>
+      </div>
+
+      <div class="card">
+        <div class="section-tag">Résultat</div>
+        <div class="note success">
+          <span class="note-label">Acquis</span>
+          <span>Double DQN réduit le biais. Dueling DQN sépare V(s) et A(s,a). PER priorise les transitions informatives. Ces variantes améliorent l'efficacité et la stabilité de DQN.</span>
+        </div>
+        <div id="m5-complete" class="module-complete">
+          <div class="mc-title">Module 5 complété ✓</div>
+          <div class="mc-xp">+150 XP gagnés</div>
+          <div class="mc-outcome">«&nbsp;Je comprends les trois variantes majeures de DQN et leurs contributions respectives.&nbsp;»</div>
+          <button class="btn btn-primary" onclick="goToModule(6)">Module suivant →</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="module-page" id="page-6">
+      <div class="module-header">
+        <div class="module-tag">Module 6</div>
+        <div class="module-title">Méthodes Policy Gradient</div>
+        <div class="module-desc">REINFORCE et Actor-Critic — Optimiser directement la politique sans Q-Table.</div>
+      </div>
+
+      <div class="card">
+        <div class="section-tag">Concepts fondamentaux</div>
+        <div class="note info">
+          <span class="note-label">Changement de paradigme</span>
+          <span>Les méthodes basées sur les valeurs (DQN) apprennent Q(s,a) puis en déduisent la politique. Les Policy Gradient optimisent directement la politique π(a|s;θ) par gradient ascendant sur la récompense attendue.</span>
+        </div>
+        <div class="concepts-grid" style="margin-top:14px">
+          <div class="concept-item">
+            <div class="concept-term">Stochastic Policy</div>
+            <div class="concept-def">π(a|s) donne une probabilité pour chaque action. L'agent échantillonne l'action selon cette distribution.</div>
+          </div>
+          <div class="concept-item">
+            <div class="concept-term">Policy Gradient</div>
+            <div class="concept-def">∇J(θ) = E[G_t · ∇ log π(a_t|s_t;θ)]. On augmente la probabilité des actions qui ont mené à de bons retours.</div>
+          </div>
+          <div class="concept-item">
+            <div class="concept-term">Retour G_t</div>
+            <div class="concept-def">Récompense cumulée actualisée à partir du temps t. G_t = Σ γᵏ r_{t+k}.</div>
+          </div>
+          <div class="concept-item">
+            <div class="concept-term">Avantage</div>
+            <div class="concept-def">Adapté aux espaces d'actions continus. Peut apprendre des politiques stochastiques naturellement.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-tag">REINFORCE</div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div style="padding:12px;background:rgba(184,169,212,0.1);border-radius:var(--radius-sm);font-size:0.82rem;color:var(--text-mid);line-height:1.6">
+            <strong style="color:var(--purple);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em">Algorithme :</strong><br>
+            1. Jouer un épisode complet avec π(θ)<br>
+            2. Calculer G_t pour chaque étape t<br>
+            3. Mettre à jour θ ← θ + α · G_t · ∇ log π(a_t|s_t;θ)<br>
+            4. Répéter
+          </div>
+          <div class="note warning">
+            <span class="note-label">Limite</span>
+            <span>Variance très élevée des estimations de gradient. Nécessite de nombreux épisodes pour converger. L'Actor-Critic résout ce problème.</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-tag">Actor-Critic</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+          <div style="padding:16px;background:rgba(232,99,122,0.08);border-radius:var(--radius-sm);border:1px solid rgba(232,99,122,0.2)">
+            <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--rose);margin-bottom:8px">🎭 Actor (Acteur)</div>
+            <div style="font-size:0.8rem;color:var(--text-mid);line-height:1.6">Apprend la politique π(a|s;θ). Décide quelle action prendre. Mis à jour par le signal du Critic.</div>
+          </div>
+          <div style="padding:16px;background:rgba(184,169,212,0.1);border-radius:var(--radius-sm);border:1px solid rgba(184,169,212,0.25)">
+            <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--purple);margin-bottom:8px">🎬 Critic (Critique)</div>
+            <div style="font-size:0.8rem;color:var(--text-mid);line-height:1.6">Apprend la fonction de valeur V(s;w). Évalue la qualité des actions prises par l'Actor.</div>
+          </div>
+        </div>
+        <div class="note success">
+          <span class="note-label">Avantage</span>
+          <span>Le Critic réduit la variance des mises à jour de l'Actor. On utilise l'avantage A(s,a) = Q(s,a) − V(s) comme signal au lieu du retour brut G_t.</span>
+        </div>
+      </div>
+
+      <!-- MODULE 6 SIMULATION: Actor-Critic vs REINFORCE Variance -->
+      <div class="card">
+        <div class="section-tag">Simulation — REINFORCE vs Actor-Critic : Variance du gradient</div>
+        <p style="font-size:0.83rem;color:var(--text-mid);margin-bottom:14px;line-height:1.5">
+          Lancez plusieurs épisodes et observez comment la variance des estimations de gradient diffère entre REINFORCE (G_t brut) et Actor-Critic (avantage A(s,a)).
+        </p>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px">
+          <button id="ac-run-btn" class="lab-btn lab-btn-run">▶ Lancer 10 épisodes</button>
+          <button id="ac-reset-btn" class="lab-btn lab-btn-reset">↺ Réinitialiser</button>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:14px">
+          <div style="padding:16px;background:rgba(208,107,107,0.08);border-radius:var(--radius-sm);border:1px solid rgba(208,107,107,0.2)">
+            <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--error);margin-bottom:10px">📊 REINFORCE (G_t brut)</div>
+            <div style="font-size:0.68rem;color:var(--text-light);margin-bottom:6px;font-family:'DM Mono',monospace">Gradients estimés :</div>
+            <div id="reinforce-bars" style="display:flex;align-items:flex-end;gap:4px;height:70px;border-bottom:1px solid rgba(208,107,107,0.2);margin-bottom:8px"></div>
+            <div style="display:flex;justify-content:space-between;font-size:0.72rem">
+              <span style="color:var(--text-light)">Variance :</span>
+              <span id="reinforce-var" style="font-family:'DM Mono',monospace;color:var(--error);font-weight:500">—</span>
+            </div>
+          </div>
+          <div style="padding:16px;background:rgba(109,184,138,0.08);border-radius:var(--radius-sm);border:1px solid rgba(109,184,138,0.2)">
+            <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--success);margin-bottom:10px">📊 Actor-Critic (A(s,a))</div>
+            <div style="font-size:0.68rem;color:var(--text-light);margin-bottom:6px;font-family:'DM Mono',monospace">Gradients estimés :</div>
+            <div id="ac-bars" style="display:flex;align-items:flex-end;gap:4px;height:70px;border-bottom:1px solid rgba(109,184,138,0.2);margin-bottom:8px"></div>
+            <div style="display:flex;justify-content:space-between;font-size:0.72rem">
+              <span style="color:var(--text-light)">Variance :</span>
+              <span id="ac-var" style="font-family:'DM Mono',monospace;color:var(--success);font-weight:500">—</span>
+            </div>
+          </div>
+        </div>
+        <div id="ac-observation" style="display:none" class="note info">
+          <span class="note-label">Observation</span>
+          <span id="ac-obs-text"></span>
+        </div>
+      </div>
+
+      <!-- MODULE 6 SIMULATION: Policy Gradient Step-by-Step -->
+      <div class="card">
+        <div class="section-tag">Simulation — Politique stochastique pas à pas</div>
+        <p style="font-size:0.83rem;color:var(--text-mid);margin-bottom:14px;line-height:1.5">
+          Un agent navigue dans un état donné. Observez comment la distribution de politique π(a|s) évolue selon les récompenses reçues.
+        </p>
+        <div id="pg-state-display" style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:14px">
+          <div style="padding:14px;flex:1;min-width:200px;background:rgba(184,169,212,0.08);border-radius:var(--radius-sm);border:1px solid rgba(184,169,212,0.2)">
+            <div style="font-size:0.68rem;color:var(--text-light);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.08em">État actuel</div>
+            <div id="pg-state" style="font-family:'DM Mono',monospace;font-size:1rem;color:var(--purple)">s₀</div>
+          </div>
+          <div style="padding:14px;flex:2;min-width:260px;background:rgba(232,99,122,0.06);border-radius:var(--radius-sm);border:1px solid rgba(232,99,122,0.15)">
+            <div style="font-size:0.68rem;color:var(--text-light);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.08em">Distribution π(a|s) — probabilités des actions</div>
+            <div id="pg-probs" style="display:flex;gap:8px;align-items:flex-end;height:60px"></div>
+            <div id="pg-action-labels" style="display:flex;gap:8px;margin-top:4px;font-size:0.65rem;color:var(--text-light);font-family:'DM Mono',monospace"></div>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px">
+          <button class="pg-act-btn lab-btn" style="background:rgba(109,184,138,0.15);color:var(--success);border:1px solid rgba(109,184,138,0.3)" data-r="10">✓ Action récompensée (+10)</button>
+          <button class="pg-act-btn lab-btn" style="background:rgba(208,107,107,0.1);color:var(--error);border:1px solid rgba(208,107,107,0.2)" data-r="-5">✗ Action pénalisée (−5)</button>
+          <button id="pg-reset-btn" class="lab-btn lab-btn-reset">↺ Reset</button>
+        </div>
+        <div id="pg-log" style="font-family:'DM Mono',monospace;font-size:0.72rem;color:var(--text-mid);background:rgba(0,0,0,0.04);border-radius:var(--radius-sm);padding:10px;max-height:90px;overflow-y:auto;line-height:1.8"></div>
+      </div>
+
+      <div class="card">
+        <div class="section-tag">Quiz</div>
+        <div id="quiz-m6"></div>
+      </div>
+
+      <div class="card">
+        <div class="section-tag">Résultat</div>
+        <div class="note success">
+          <span class="note-label">Acquis</span>
+          <span>Les Policy Gradient optimisent directement la politique. REINFORCE est simple mais à haute variance. Actor-Critic combine policy gradient et estimation de valeur pour réduire la variance.</span>
+        </div>
+        <div id="m6-complete" class="module-complete">
+          <div class="mc-title">Module 6 complété ✓</div>
+          <div class="mc-xp">+150 XP gagnés</div>
+          <div class="mc-outcome">«&nbsp;Je comprends comment optimiser une politique directement et pourquoi l'Actor-Critic améliore REINFORCE.&nbsp;»</div>
+          <button class="btn btn-primary" onclick="goToModule(7)">Module suivant →</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="module-page" id="page-7">
+      <div class="module-header">
+        <div class="module-tag">Module 7</div>
+        <div class="module-title">PPO &amp; TRPO</div>
+        <div class="module-desc">Mises à jour de politique stables et fiables — les algorithmes les plus utilisés en pratique.</div>
+      </div>
+
+      <div class="card">
+        <div class="section-tag">Le problème des mises à jour trop grandes</div>
+        <div class="note warning">
+          <span class="note-label">Erreur fréquente</span>
+          <span>En Policy Gradient, une mise à jour trop grande peut effondrer la performance : l'agent "oublie" sa politique et ne peut pas revenir en arrière. C'est le problème de la mise à jour catastrophique.</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-tag">TRPO — Trust Region Policy Optimization</div>
+        <div class="concepts-grid">
+          <div class="concept-item">
+            <div class="concept-term">Trust Region</div>
+            <div class="concept-def">Contrainte KL : la nouvelle politique ne peut pas s'éloigner trop de l'ancienne. KL(π_old ∥ π_new) ≤ δ.</div>
+          </div>
+          <div class="concept-item">
+            <div class="concept-term">Problème</div>
+            <div class="concept-def">Résout un problème d'optimisation avec contrainte à chaque étape. Très coûteux computationnellement.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-tag">PPO — Proximal Policy Optimization</div>
+        <div class="note info">
+          <span class="note-label">Solution élégante</span>
+          <span>PPO remplace la contrainte TRPO par une fonction objective clippée (écrêtée). Pas de calcul de matrice de Fisher, pas d'optimisation contrainte. Simple, efficace, parallélisable.</span>
+        </div>
+        <div style="margin-top:14px">
+          <table class="compare-table">
+            <thead><tr><th>Critère</th><th>TRPO</th><th>PPO</th></tr></thead>
+            <tbody>
+              <tr><td>Stabilité</td><td><span class="tag-good">Garantie théorique</span></td><td><span class="tag-good">Pratiquement stable</span></td></tr>
+              <tr><td>Complexité</td><td><span class="tag-bad">Élevée (KL constraint)</span></td><td><span class="tag-good">Faible (clip)</span></td></tr>
+              <tr><td>Implémentation</td><td><span class="tag-bad">Difficile</span></td><td><span class="tag-good">Simple</span></td></tr>
+              <tr><td>Parallélisable</td><td><span class="tag-neutral">Limité</span></td><td><span class="tag-good">Oui</span></td></tr>
+              <tr><td>Usage en pratique</td><td><span class="tag-neutral">Moins fréquent</span></td><td><span class="tag-good">Standard de l'industrie</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="note success" style="margin-top:14px">
+          <span class="note-label">À retenir</span>
+          <span>PPO est l'algorithme par défaut recommandé pour la plupart des problèmes de Deep RL. OpenAI l'utilise pour GPT (RLHF), robotique, jeux. C'est le meilleur rapport performance/simplicité.</span>
+        </div>
+      </div>
+
+      <!-- MODULE 7 SIMULATION: PPO Clip Ratio -->
+      <div class="card">
+        <div class="section-tag">Simulation — PPO : L'effet du clipping</div>
+        <p style="font-size:0.83rem;color:var(--text-mid);margin-bottom:14px;line-height:1.5">
+          Ajustez le ratio r(θ) = π_new/π_old et l'avantage A, et observez comment PPO clippe la mise à jour pour rester dans la région de confiance.
+        </p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:16px">
+          <div>
+            <div style="font-size:0.72rem;color:var(--text-light);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.08em">Ratio r(θ) = π_new / π_old</div>
+            <input type="range" id="ppo-ratio" min="0.5" max="2.0" step="0.05" value="1.0" style="width:100%;accent-color:var(--rose)">
+            <div style="display:flex;justify-content:space-between;font-size:0.72rem;color:var(--text-light);margin-top:4px"><span>0.5</span><span id="ppo-ratio-val" style="color:var(--rose);font-family:'DM Mono',monospace;font-weight:500">1.00</span><span>2.0</span></div>
+          </div>
+          <div>
+            <div style="font-size:0.72rem;color:var(--text-light);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.08em">Avantage A(s,a)</div>
+            <input type="range" id="ppo-advantage" min="-5" max="5" step="0.5" value="2" style="width:100%;accent-color:var(--purple)">
+            <div style="display:flex;justify-content:space-between;font-size:0.72rem;color:var(--text-light);margin-top:4px"><span>−5</span><span id="ppo-adv-val" style="color:var(--purple);font-family:'DM Mono',monospace;font-weight:500">+2.0</span><span>+5</span></div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px">
+          <div style="padding:14px;text-align:center;background:rgba(184,169,212,0.1);border-radius:var(--radius-sm);border:1px solid var(--border)">
+            <div style="font-size:0.65rem;color:var(--text-light);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px">Sans clip (r·A)</div>
+            <div id="ppo-unclipped" style="font-family:'DM Mono',monospace;font-size:1.2rem;color:var(--purple);font-weight:500">—</div>
+          </div>
+          <div style="padding:14px;text-align:center;background:rgba(232,99,122,0.08);border-radius:var(--radius-sm);border:1px solid rgba(232,99,122,0.2)">
+            <div style="font-size:0.65rem;color:var(--text-light);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px">Avec clip PPO (ε=0.2)</div>
+            <div id="ppo-clipped" style="font-family:'DM Mono',monospace;font-size:1.2rem;color:var(--rose);font-weight:500">—</div>
+          </div>
+          <div style="padding:14px;text-align:center;border-radius:var(--radius-sm);border:1px solid var(--border)" id="ppo-result-box">
+            <div style="font-size:0.65rem;color:var(--text-light);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px">Résultat</div>
+            <div id="ppo-result-text" style="font-size:0.78rem;font-weight:500">—</div>
+          </div>
+        </div>
+        <div style="height:8px;border-radius:99px;background:rgba(184,169,212,0.15);overflow:hidden;margin-bottom:6px;position:relative">
+          <div id="ppo-zone" style="position:absolute;height:100%;background:rgba(109,184,138,0.25);transition:all 0.3s"></div>
+          <div id="ppo-marker" style="position:absolute;top:0;height:100%;width:3px;background:var(--rose);border-radius:99px;transition:left 0.3s"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:0.65rem;color:var(--text-light)"><span>0.5</span><span style="color:var(--success)">Zone de confiance [0.8 — 1.2]</span><span>2.0</span></div>
+        <div id="ppo-note" style="display:none;margin-top:12px" class="note warning">
+          <span class="note-label">⚠ Clipping actif</span>
+          <span id="ppo-note-text"></span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-tag">Quiz</div>
+        <div id="quiz-m7"></div>
+      </div>
+
+      <div class="card">
+        <div class="section-tag">Résultat</div>
+        <div class="note success">
+          <span class="note-label">Acquis</span>
+          <span>TRPO garantit théoriquement des mises à jour stables via une contrainte KL. PPO reproduit ce comportement avec une simple fonction clippée — plus simple, aussi efficace, largement adopté.</span>
+        </div>
+        <div id="m7-complete" class="module-complete">
+          <div class="mc-title">Module 7 complété ✓</div>
+          <div class="mc-xp">+150 XP gagnés</div>
+          <div class="mc-outcome">«&nbsp;Je comprends pourquoi PPO est devenu le standard et comment il résout le problème de la mise à jour catastrophique.&nbsp;»</div>
+          <button class="btn btn-primary" onclick="goToModule(8)">Module suivant →</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="module-page" id="page-8">
+      <div class="module-header">
+        <div class="module-tag">Module 8</div>
+        <div class="module-title">Outils &amp; Bibliothèques</div>
+        <div class="module-desc">OpenAI Gym, TensorFlow, PyTorch, Stable Baselines, RLlib.</div>
+      </div>
+
+      <div class="card">
+        <div class="section-tag">Environnements</div>
+        <div class="concepts-grid">
+          <div class="concept-item">
+            <div class="concept-term">OpenAI Gym</div>
+            <div class="concept-def">Interface standard pour les environnements RL. API : reset(), step(action), render(). Exemples : CartPole, MountainCar, Atari.</div>
+          </div>
+          <div class="concept-item">
+            <div class="concept-term">Gymnasium</div>
+            <div class="concept-def">Successeur officiel de OpenAI Gym, maintenu par Farama Foundation. API identique, plus de corrections et d'environnements.</div>
+          </div>
+        </div>
+        <div class="note info" style="margin-top:14px">
+          <span class="note-label">API Gym</span>
+          <span><code style="font-family:'DM Mono',monospace;font-size:0.78rem">env = gym.make("CartPole-v1")</code> → <code style="font-family:'DM Mono',monospace;font-size:0.78rem">obs, info = env.reset()</code> → <code style="font-family:'DM Mono',monospace;font-size:0.78rem">obs, rew, done, trunc, info = env.step(action)</code></span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-tag">Frameworks Deep Learning</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+          <div style="padding:16px;background:rgba(255,165,0,0.06);border-radius:var(--radius-sm);border:1px solid rgba(255,165,0,0.15)">
+            <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;color:#b87a00;margin-bottom:8px">TensorFlow / Keras</div>
+            <div style="font-size:0.8rem;color:var(--text-mid);line-height:1.6">• Production et déploiement<br>• TensorFlow.js pour le web<br>• TFLite pour mobile<br>• Graphe de calcul statique (TF1) ou dynamique (TF2)</div>
+          </div>
+          <div style="padding:16px;background:rgba(232,99,122,0.06);border-radius:var(--radius-sm);border:1px solid rgba(232,99,122,0.15)">
+            <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--rose);margin-bottom:8px">PyTorch</div>
+            <div style="font-size:0.8rem;color:var(--text-mid);line-height:1.6">• Recherche et prototypage<br>• Graphe dynamique (eager)<br>• Standard académique<br>• Autograd intégré</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-tag">Bibliothèques RL de haut niveau</div>
+        <div class="concepts-grid">
+          <div class="concept-item">
+            <div class="concept-term">Stable Baselines 3</div>
+            <div class="concept-def">Implémentations fiables de PPO, A2C, SAC, TD3, DQN sous PyTorch. Idéal pour commencer et comparer des algorithmes.</div>
+          </div>
+          <div class="concept-item">
+            <div class="concept-term">RLlib (Ray)</div>
+            <div class="concept-def">Framework distribué pour le RL à grande échelle. Supporte l'entraînement multi-GPU et multi-machine. Production-ready.</div>
+          </div>
+          <div class="concept-item">
+            <div class="concept-term">Tianshou</div>
+            <div class="concept-def">Bibliothèque PyTorch modulaire avec des composants réutilisables (buffer, trainer, policy).</div>
+          </div>
+          <div class="concept-item">
+            <div class="concept-term">CleanRL</div>
+            <div class="concept-def">Implémentations minimalistes et lisibles d'algorithmes RL. Idéal pour l'apprentissage du code.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-tag">Quiz</div>
+        <div id="quiz-m8"></div>
+      </div>
+
+      <div class="card">
+        <div class="section-tag">Résultat</div>
+        <div class="note success">
+          <span class="note-label">Acquis</span>
+          <span>L'écosystème RL est riche : Gym pour les environnements, PyTorch/TF pour les réseaux, SB3/RLlib pour les algorithmes prêts à l'emploi.</span>
+        </div>
+        <div id="m8-complete" class="module-complete">
+          <div class="mc-title">Module 8 complété ✓</div>
+          <div class="mc-xp">+150 XP gagnés</div>
+          <div class="mc-outcome">«&nbsp;Je connais les outils essentiels de l'écosystème Deep RL et leur usage approprié.&nbsp;»</div>
+          <button class="btn btn-primary" onclick="goToModule(9)">Module suivant →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODULE 9: ARÈNE FINALE -->
+    <div class="module-page" id="page-9">
+      <div class="module-header">
+        <div class="module-tag">Module 9</div>
+        <div class="module-title">Arène Finale — Comparaison des Algorithmes</div>
+        <div class="module-desc">Comparer les algorithmes appris : vitesse d'apprentissage, stabilité, performance finale.</div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">
+          <div class="icon icon-rose">🏆</div>
+          Comparaison globale des algorithmes
+        </div>
+        <table class="compare-table">
+          <thead>
+            <tr>
+              <th>Algorithme</th>
+              <th>Type</th>
+              <th>Vitesse d'apprentissage</th>
+              <th>Stabilité</th>
+              <th>Performance finale</th>
+              <th>Cas d'usage</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>DQN</strong></td>
+              <td>Value-based</td>
+              <td><span class="tag-neutral">Moyenne</span></td>
+              <td><span class="tag-neutral">Modérée</span></td>
+              <td><span class="tag-neutral">Référence</span></td>
+              <td>Actions discrètes, Atari</td>
+            </tr>
+            <tr>
+              <td><strong>Double DQN</strong></td>
+              <td>Value-based</td>
+              <td><span class="tag-neutral">Moyenne</span></td>
+              <td><span class="tag-good">Meilleure</span></td>
+              <td><span class="tag-good">Supérieure</span></td>
+              <td>Idem DQN, moins de biais</td>
+            </tr>
+            <tr>
+              <td><strong>Dueling DQN</strong></td>
+              <td>Value-based</td>
+              <td><span class="tag-good">Rapide</span></td>
+              <td><span class="tag-good">Bonne</span></td>
+              <td><span class="tag-good">Supérieure</span></td>
+              <td>Environnements denses</td>
+            </tr>
+            <tr>
+              <td><strong>Actor-Critic (A2C)</strong></td>
+              <td>Policy Gradient</td>
+              <td><span class="tag-good">Rapide</span></td>
+              <td><span class="tag-neutral">Modérée</span></td>
+              <td><span class="tag-neutral">Correcte</span></td>
+              <td>Actions continues</td>
+            </tr>
+            <tr>
+              <td><strong>PPO</strong></td>
+              <td>Policy Gradient</td>
+              <td><span class="tag-good">Rapide</span></td>
+              <td><span class="tag-good">Excellente</span></td>
+              <td><span class="tag-good">Excellente</span></td>
+              <td>Standard polyvalent</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="card">
+        <div class="card-title">
+          <div class="icon icon-lavender">📊</div>
+          Performance relative (simulée)
+        </div>
+        <div class="bar-chart" id="final-chart">
+          <div class="bar-item">
+            <div class="bar-val">72</div>
+            <div class="bar" style="height:72px;background:linear-gradient(180deg,#b8a9d4,#7c6fa0)"></div>
+            <div class="bar-label">DQN</div>
+          </div>
+          <div class="bar-item">
+            <div class="bar-val">79</div>
+            <div class="bar" style="height:79px;background:linear-gradient(180deg,#f2a0ae,#e8637a)"></div>
+            <div class="bar-label">Double DQN</div>
+          </div>
+          <div class="bar-item">
+            <div class="bar-val">84</div>
+            <div class="bar" style="height:84px;background:linear-gradient(180deg,#f2a0ae,#c94e6a)"></div>
+            <div class="bar-label">Dueling DQN</div>
+          </div>
+          <div class="bar-item">
+            <div class="bar-val">80</div>
+            <div class="bar" style="height:80px;background:linear-gradient(180deg,#d4cce8,#b8a9d4)"></div>
+            <div class="bar-label">Actor-Critic</div>
+          </div>
+          <div class="bar-item">
+            <div class="bar-val">91</div>
+            <div class="bar" style="height:91px;background:linear-gradient(180deg,#a3d4b5,#6db88a)"></div>
+            <div class="bar-label">PPO</div>
+          </div>
+        </div>
+        <div style="font-size:0.72rem;color:var(--text-light);margin-top:8px;text-align:center">Score de performance normalisé (valeurs illustratives)</div>
+      </div>
+
+      <div class="card">
+        <div class="section-tag">Comment choisir ?</div>
+        <div class="concepts-grid">
+          <div class="concept-item">
+            <div class="concept-term">Actions discrètes</div>
+            <div class="concept-def">DQN, Double DQN, Dueling DQN. Adapté aux jeux, menus, décisions catégorielles.</div>
+          </div>
+          <div class="concept-item">
+            <div class="concept-term">Actions continues</div>
+            <div class="concept-def">PPO, Actor-Critic, SAC, TD3. Robotique, contrôle, physique simulée.</div>
+          </div>
+          <div class="concept-item">
+            <div class="concept-term">Départ rapide</div>
+            <div class="concept-def">PPO avec Stable Baselines 3. Une ligne de code pour entraîner un agent compétent.</div>
+          </div>
+          <div class="concept-item">
+            <div class="concept-term">Grande échelle</div>
+            <div class="concept-def">RLlib avec PPO distribué. Multi-GPU, multi-workers, environnements parallèles.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-tag">Quiz Final</div>
+        <div id="quiz-m9"></div>
+      </div>
+
+      <div class="card">
+        <div class="section-tag">Résultat du Laboratoire</div>
+        <div id="m9-complete" class="module-complete">
+          <div class="mc-title">Laboratoire complété ✓</div>
+          <div class="mc-xp" id="final-xp-display">+150 XP gagnés</div>
+          <div class="mc-outcome">«&nbsp;J'ai expérimenté les concepts du Deep Reinforcement Learning, compris leurs différences, et identifié les algorithmes adaptés à chaque situation.&nbsp;»</div>
+          <button class="btn btn-primary" onclick="goToModule(10)">Voir les Résultats Finaux →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- PAGE FINALE -->
+    <div class="module-page" id="page-10">
+      <div class="final-banner">
+        <div class="final-quote">«&nbsp;Vous n'avez pas lu le Deep Reinforcement Learning.<br>Vous l'avez expérimenté.&nbsp;»</div>
+        <div class="final-xp" id="final-total-xp">0 XP</div>
+        <div class="final-xp-label">Points d'expérience accumulés</div>
+        <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+          <button class="btn" style="background:rgba(255,255,255,0.15);color:white;border:1px solid rgba(255,255,255,0.25)" onclick="resetAll()">↺ Recommencer</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">
+          <div class="icon icon-lavender">🎓</div>
+          Résultats de l'Apprentissage
+        </div>
+        <div class="dash-grid">
+          <div class="dash-stat">
+            <div class="dash-stat-num" id="res-xp" style="font-size:1.5rem">0 <span style="font-size:1rem;color:var(--text-light);font-family:'DM Sans',sans-serif">/ 1 350</span></div>
+            <div class="dash-stat-label">Score XP</div>
+            <div style="margin-top:6px;font-family:'DM Mono',monospace;font-size:0.88rem;color:var(--rose);font-weight:500" id="res-grade">—</div>
+          </div>
+          <div class="dash-stat">
+            <div class="dash-stat-num" id="res-done">0</div>
+            <div class="dash-stat-label">Modules complétés</div>
+          </div>
+          <div class="dash-stat">
+            <div class="dash-stat-num" id="res-pct">0%</div>
+            <div class="dash-stat-label">Progression</div>
+          </div>
+        </div>
+        <div style="margin-top:8px">
+          <div class="section-tag">Concepts maîtrisés</div>
+          <div class="concepts-grid">
+            <div class="concept-item"><div class="concept-term">Agent &amp; Environnement</div><div class="concept-def">Cycle état → action → récompense</div></div>
+            <div class="concept-item"><div class="concept-term">Q-Learning &amp; DQN</div><div class="concept-def">Approximation par réseau neuronal</div></div>
+            <div class="concept-item"><div class="concept-term">Replay Buffer</div><div class="concept-def">Rupture de la corrélation temporelle</div></div>
+            <div class="concept-item"><div class="concept-term">Target Network</div><div class="concept-def">Stabilisation des cibles d'entraînement</div></div>
+            <div class="concept-item"><div class="concept-term">Double &amp; Dueling DQN</div><div class="concept-def">Réduction du biais, V(s) + A(s,a)</div></div>
+            <div class="concept-item"><div class="concept-term">Policy Gradient</div><div class="concept-def">Optimisation directe de la politique</div></div>
+            <div class="concept-item"><div class="concept-term">Actor-Critic</div><div class="concept-def">Réduction de la variance</div></div>
+            <div class="concept-item"><div class="concept-term">PPO &amp; TRPO</div><div class="concept-def">Mises à jour stables et fiables</div></div>
+            <div class="concept-item"><div class="concept-term">Outils &amp; Bibliothèques</div><div class="concept-def">Gym, PyTorch, SB3, RLlib</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /pages -->
+</main>
+</div><!-- /app -->
+
+<script>
+// ============================================================
+// STATE
+// ============================================================
+const MAX_XP = 1350; // 9 modules × 3 questions × 50 XP
+const MODULES_DATA = [
+  { id: 0, title: 'Tableau de Bord', desc: 'Vue d\'ensemble et navigation', xp: 0 },
+  { id: 1, title: 'Fondations du Deep RL', desc: 'Agent, état, action, récompense', xp: 150 },
+  { id: 2, title: 'Réseaux de Neurones', desc: 'Approximation des Q-valeurs', xp: 150 },
+  { id: 3, title: 'Deep Q-Networks (DQN)', desc: 'Architecture, ε-greedy, replay', xp: 150 },
+  { id: 4, title: 'Techniques d\'Optimisation', desc: 'Replay Buffer, Target Network', xp: 150 },
+  { id: 5, title: 'Algorithmes DQN Avancés', desc: 'Double DQN, Dueling, PER', xp: 150 },
+  { id: 6, title: 'Policy Gradient', desc: 'REINFORCE, Actor-Critic', xp: 150 },
+  { id: 7, title: 'PPO & TRPO', desc: 'Mises à jour stables', xp: 150 },
+  { id: 8, title: 'Outils & Bibliothèques', desc: 'Gym, PyTorch, SB3, RLlib', xp: 150 },
+  { id: 9, title: 'Arène Finale', desc: 'Comparaison des algorithmes', xp: 150 },
+];
+
+let state = {
+  currentModule: 0,
+  completedModules: new Set(),
+  xp: 0,
+  quizAnswered: {} // quizId -> answered
+};
+
+function saveState() {
+  localStorage.setItem('drl_lab_state', JSON.stringify({
+    currentModule: state.currentModule,
+    completedModules: [...state.completedModules],
+    xp: state.xp,
+    quizAnswered: state.quizAnswered
+  }));
+}
+
+function loadState() {
+  // Always start fresh — no localStorage persistence
+  state = { currentModule: 0, completedModules: new Set(), xp: 0, quizAnswered: {} };
+}
+function saveState() { /* fresh start — no persistence */ }
+
+// ============================================================
+// QUIZZES DATA
+// ============================================================
+const QUIZZES = {
+  'm1': {
+    id: 'm1',
+    questions: [
+      {
+        q: "Un agent reçoit −1 à chaque déplacement et +100 s'il atteint l'objectif. Après entraînement, quelle stratégie adoptera-t-il probablement ?",
+        options: [
+          "Trouver le chemin le plus court vers l'objectif",
+          "Rester immobile pour éviter les pénalités",
+          "Explorer l'environnement de façon aléatoire",
+          "Ignorer l'objectif car −1 répété annule +100"
+        ],
+        correct: 0,
+        feedback_correct: "Exact. La pénalité de −1 par étape pousse l'agent à minimiser le nombre d'étapes, donc à trouver le chemin optimal. C'est la récompense densifiée.",
+        feedback_incorrect: "Note : La somme des pénalités −1 ne peut pas dépasser −100 (avant d'atteindre l'objectif), donc le +100 final reste toujours rentable. La politique optimale minimise les étapes = chemin le plus court."
+      },
+      {
+        q: "Si on change la récompense pour l'objectif de +100 à +1 (même pénalité −1/étape), que se passe-t-il ?",
+        options: [
+          "Le comportement reste identique",
+          "L'agent risque de ne jamais atteindre l'objectif (récompense nulle ou négative sur les longs chemins)",
+          "L'agent explore davantage",
+          "L'agent apprend plus vite"
+        ],
+        correct: 1,
+        feedback_correct: "Correct. Sur un chemin de plus de 1 étape, la récompense totale est négative. L'agent pourrait préférer ne pas se déplacer. Cela illustre l'importance critique du design de la fonction de récompense.",
+        feedback_incorrect: "Note : Si le chemin prend 5 étapes, la récompense totale est 5 × (−1) + 1 = −4. L'agent optimal pourrait donc préférer l'immobilité (récompense 0). Le design de récompense est crucial."
+      },
+      {
+        q: "Un ingénieur observe que son robot tourne en boucle autour d'une même zone sans jamais atteindre l'objectif. Quelle conception de récompense a le plus probablement causé ce comportement ?",
+        options: [
+          "Récompense objectif trop élevée (+1000), pénalité déplacement nulle (0)",
+          "Récompense objectif correcte (+100), mais l'exploration est insuffisante",
+          "Pénalité de déplacement trop forte (−10/pas) face à une récompense objectif faible (+5)",
+          "La politique greedy a convergé trop tôt vers un optimum local"
+        ],
+        correct: 2,
+        feedback_correct: "Exact. Avec −10/pas et +5 à l'objectif, tout chemin de plus d'un pas donne une récompense négative. L'agent préfère éviter de se déplacer trop loin — il oscille autour d'états neutres plutôt que de chercher l'objectif.",
+        feedback_incorrect: "Note : La récompense cumulée sur k pas est k × (−10) + 5. Pour k > 0, c'est toujours négatif. Le ratio récompense/coût est fondamental : si la pénalité dépasse le gain, l'agent évite d'agir."
+      }
+    ]
+  },
+  'm2': {
+    id: 'm2',
+    questions: [
+      {
+        q: "Un réseau DQN produit ces Q-valeurs : Avancer=8.2, Gauche=1.4, Droite=5.6. L'environnement donne une récompense immédiate de +10 si l'agent va à Gauche. Quelle action doit choisir l'agent ?",
+        options: [
+          "Avancer (Q=8.2 maximal)",
+          "Gauche (+10 immédiat)",
+          "Droite (compromis)",
+          "Aléatoire (exploration)"
+        ],
+        correct: 0,
+        feedback_correct: "Correct. Le réseau prédit que 'Avancer' mène à la meilleure récompense CUMULÉE (8.2). La récompense immédiate de +10 à Gauche pourrait être suivie de très mauvais états. La Q-valeur intègre le futur.",
+        feedback_incorrect: "Note : La Q-valeur Q(s,a) représente la somme des récompenses futures actualisées, pas la récompense immédiate. Gauche pourrait donner +10 maintenant mais −50 ensuite. La Q-valeur capture cela."
+      },
+      {
+        q: "Pourquoi ne peut-on pas utiliser une Q-Table pour jouer à Atari Breakout directement depuis les pixels ?",
+        options: [
+          "Les Q-Tables ne fonctionnent qu'avec des récompenses positives",
+          "L'espace d'états (pixels) est continu et de taille astronomique (~10⁸⁴ états)",
+          "Les Q-Tables ne supportent que 4 actions maximum",
+          "Atari ne produit pas de signaux de récompense"
+        ],
+        correct: 3,
+        feedback_correct: "Exact. Une image 84×84 en niveaux de gris représente 256^(84×84) ≈ 10^17000 états possibles. Aucune mémoire ne peut stocker cette Q-Table. Le réseau de neurones généralise.",
+        feedback_incorrect: "Note : Une Q-Table nécessite une entrée pour chaque état possible. L'image d'Atari (84×84×4 frames) génère un espace d'états impossible à énumérer. Le réseau approxime Q(s,a) pour tout s sans les stocker."
+      },
+      {
+        q: "Un DQN produit : Avancer = 8.2, Gauche = 1.4, Droite = 5.6. L'agent choisit «Gauche». Quelle hypothèse explique le mieux ce comportement ?",
+        options: [
+          "Le réseau a été mal entraîné — la Q-valeur maximale devrait toujours être choisie",
+          "L'agent est en phase d'exploration (ε-greedy) et a tiré une action aléatoire",
+          "La Q-valeur de Gauche était la plus haute lors du calcul interne",
+          "Le Replay Buffer a corrompu les poids du réseau"
+        ],
+        correct: 1,
+        feedback_correct: "Correct. Avec ε-greedy, l'agent choisit aléatoirement avec probabilité ε — indépendamment des Q-valeurs. Ce comportement est normal et même nécessaire en début d'entraînement pour explorer l'espace d'états.",
+        feedback_incorrect: "Note : La politique greedy pure choisit toujours argmax Q(s,a). Mais avec ε-greedy, l'agent choisit aléatoirement avec probabilité ε. Choisir Gauche malgré Q(Avancer)=8.2 est le signe d'une étape d'exploration."
+      }
+    ]
+  },
+  'm3': {
+    id: 'm3',
+    questions: [
+      {
+        q: "Un DQN est entraîné avec ε=1.0 constant (sans décroissance). Quel problème survient ?",
+        options: [
+          "L'agent apprend trop vite et sur-ajuste",
+          "Le Replay Buffer se remplit trop rapidement",
+          "Le Target Network ne se met jamais à jour",
+          "L'agent reste en exploration permanente et ne converge jamais vers une politique optimale"
+        ],
+        correct: 3,
+        feedback_correct: "Correct. ε=1.0 signifie 100% d'actions aléatoires. L'agent explore mais n'exploite jamais ce qu'il a appris. La politique reste aléatoire indéfiniment.",
+        feedback_incorrect: "Note : Avec ε=1.0, l'agent choisit toujours une action aléatoire. Il accumule des expériences dans le Replay Buffer mais ne les utilise jamais pour exploiter une politique améliorée."
+      },
+      {
+        q: "Pourquoi le Replay Buffer tire-t-il des transitions de façon ALÉATOIRE pour l'entraînement ?",
+        options: [
+          "Pour briser la corrélation temporelle entre transitions consécutives",
+          "Pour accélérer le calcul",
+          "Pour réduire la taille du buffer",
+          "Pour équilibrer les récompenses positives et négatives"
+        ],
+        correct: 0,
+        feedback_correct: "Correct. Des transitions consécutives sont très similaires (état t et état t+1 sont proches). Entraîner dessus crée un biais. Le tirage aléatoire brise cette corrélation et rend l'entraînement plus stable.",
+        feedback_incorrect: "Note : En RL, les transitions s_t → s_{t+1} sont fortement corrélées. Si on s'entraîne sur des séquences, c'est comme apprendre la même chose en boucle. Le tirage aléatoire simule un ensemble d'exemples indépendants."
+      },
+      {
+        q: "Un ingénieur fixe ε = 0.01 dès le début de l'entraînement (sans décroissance). Après 10 000 épisodes, le taux de succès est stable à 30% alors qu'un agent bien entraîné atteint 95%. Quel est le problème le plus probable ?",
+        options: [
+          "Le réseau de neurones est trop petit pour mémoriser la politique",
+          "L'agent n'a pas suffisamment exploré — il est bloqué dans un optimum local découvert trop tôt",
+          "La fonction de récompense est mal calibrée",
+          "Le Replay Buffer est trop petit pour stocker assez de transitions"
+        ],
+        correct: 3,
+        feedback_correct: "Exact. Avec ε=0.01 dès le départ, l'agent exploite sa politique actuelle à 99% — mais cette politique est quasi-aléatoire au début. Il converge rapidement vers une sous-politique sans avoir exploré suffisamment l'espace d'états.",
+        feedback_incorrect: "Note : Un ε faible dès le début empêche l'exploration initiale nécessaire. L'agent se retrouve à exploiter une politique médiocre. La décroissance de ε (de 1.0 vers 0.01) est précisément conçue pour éviter ce piège."
+      }
+    ]
+  },
+  'm4': {
+    id: 'm4',
+    questions: [
+      {
+        q: "Sans Target Network, pourquoi l'entraînement DQN est-il instable ?",
+        options: [
+          "Le réseau est trop grand pour la mémoire",
+          "La cible de Bellman change à chaque étape d'entraînement car elle dépend du même réseau qu'on met à jour",
+          "Le taux d'apprentissage est trop élevé",
+          "Le Replay Buffer se vide trop vite"
+        ],
+        correct: 1,
+        feedback_correct: "Exact. Si on utilise le même réseau pour calculer la cible et pour s'entraîner, chaque mise à jour modifie la cible elle-même. C'est comme viser une cible qui bouge — très difficile de converger.",
+        feedback_incorrect: "Note : La cible de Bellman est r + γ max Q(s',a';θ). Si θ change à chaque étape, la cible change aussi. On cherche à minimiser une erreur par rapport à une cible mobile — instabilité garantie."
+      },
+      {
+        q: "Le Target Network est mis à jour tous les C=1000 pas. Si on choisit C=5, quel est le problème ?",
+        options: [
+          "Le réseau n'a pas le temps de mémoriser les transitions",
+          "Les données du Replay Buffer deviennent obsolètes",
+          "La cible change presque aussi vite que le réseau principal — on perd le bénéfice de la stabilité",
+          "L'exploration diminue trop vite"
+        ],
+        correct: 2,
+        feedback_correct: "Correct. Un C très faible signifie que le Target Network est presque identique au réseau principal. La cible change presque à chaque étape — on retrouve le problème de la cible mobile.",
+        feedback_incorrect: "Note : L'objectif du Target Network est de fournir une cible STABLE pendant plusieurs étapes. Si C=5, la cible change toutes les 5 étapes — insuffisant pour stabiliser l'apprentissage."
+      },
+      {
+        q: "Un ingénieur supprime le Replay Buffer et entraîne le DQN sur les transitions dans l'ordre d'apparition (séquentiellement). Quel est l'effet attendu sur la courbe de performance ?",
+        options: [
+          "Oscillations importantes et convergence instable due à la forte corrélation entre transitions consécutives",
+          "L'entraînement est plus rapide car on utilise immédiatement chaque transition",
+          "La performance diminue car les transitions récentes sont ignorées",
+          "Aucun changement — l'ordre des transitions n'a pas d'importance"
+        ],
+        correct: 0,
+        feedback_correct: "Exact. Sans tirage aléatoire, des transitions s_t, s_{t+1}, s_{t+2}... très similaires sont utilisées consécutivement. Le gradient est dominé par la même région de l'espace d'états, causant des oscillations et une perte de généralisation.",
+        feedback_incorrect: "Note : Des transitions séquentielles sont fortement corrélées. Le réseau sur-apprend la région actuelle de l'environnement et 'oublie' ce qu'il a appris ailleurs — un phénomène similaire au catastrophic forgetting."
+      }
+    ]
+  },
+  'm5': {
+    id: 'm5',
+    questions: [
+      {
+        q: "DQN classique surestime souvent les Q-valeurs. Quelle est la cause principale de ce biais ?",
+        options: [
+          "Le taux d'apprentissage est trop élevé",
+          "Le même réseau sélectionne ET évalue l'action optimale, créant un biais systématique vers le max",
+          "L'espace d'actions est trop grand",
+          "Le Replay Buffer contient trop de transitions négatives"
+        ],
+        correct: 3,
+        feedback_correct: "Exact. En prenant le max sur les Q-valeurs bruitées, on sélectionne systématiquement la valeur la plus haute — qui est souvent une surestimation due au bruit. Double DQN sépare la sélection de l'évaluation.",
+        feedback_incorrect: "Note : max_a Q(s,a) sélectionne la Q-valeur la plus haute parmi des valeurs bruitées. Le maximum de valeurs bruitées est statistiquement biaisé vers le haut. Ce biais se propage et s'accumule."
+      },
+      {
+        q: "Dans Dueling DQN, V(s)=5 et A(Gauche)=−1, A(Avant)=+3, A(Droite)=−2. Quelle est la Q-valeur de l'action 'Avant' ?",
+        options: [
+          "+3",
+          "5 + 3 = 8",
+          "5 + 3 − mean(−1,+3,−2) = 5 + 3 − 0 = 8",
+          "5 × 3 = 15"
+        ],
+        correct: 2,
+        feedback_correct: "Correct. Q(s,Avant) = V(s) + A(Avant) − mean(A) = 5 + 3 − mean(−1,+3,−2) = 5 + 3 − 0 = 8. La soustraction de la moyenne (centrage) assure l'identifiabilité de V et A.",
+        feedback_incorrect: "Note : La formule est Q(s,a) = V(s) + A(s,a) − mean(A(s,·)). Mean(−1,+3,−2) = 0/3 = 0. Donc Q(s,Avant) = 5 + 3 − 0 = 8. Le centrage est crucial pour séparer correctement V et A."
+      },
+      {
+        q: "Double DQN et DQN classique utilisent tous deux un Target Network. Quelle est la différence clé dans le calcul de la cible de Bellman ?",
+        options: [
+          "Double DQN utilise deux Replay Buffers distincts",
+          "Double DQN sélectionne l'action avec le réseau principal, mais l'évalue avec le Target Network",
+          "Double DQN met à jour le Target Network deux fois plus souvent",
+          "Double DQN utilise deux couches cachées supplémentaires"
+        ],
+        correct: 1,
+        feedback_correct: "Exact. Dans DQN : target = r + γ max_a Q(s',a;θ⁻). Dans Double DQN : target = r + γ Q(s', argmax_a Q(s',a;θ); θ⁻). La sélection et l'évaluation sont découplées — ce qui réduit le biais de surestimation.",
+        feedback_incorrect: "Note : Le biais vient du fait que max_a Q(s',a;θ⁻) sélectionne ET évalue avec le même réseau. Double DQN sépare : le réseau principal choisit quelle action est la meilleure, le Target Network l'évalue. Moins de biais."
+      }
+    ]
+  },
+  'm6': {
+    id: 'm6',
+    questions: [
+      {
+        q: "REINFORCE met à jour la politique en augmentant la probabilité des actions avec de grands retours G_t. Quel est le principal problème de cet algorithme ?",
+        options: [
+          "Il ne peut pas fonctionner avec des espaces d'actions continus",
+          "Il nécessite un Replay Buffer très grand",
+          "Il ne converge que sur des problèmes déterministes",
+          "Haute variance : les estimations de gradient changent drastiquement d'un épisode à l'autre"
+        ],
+        correct: 3,
+        feedback_correct: "Exact. G_t dépend de tout le retour de l'épisode entier, qui est aléatoire. Deux épisodes similaires peuvent donner des G_t très différents → estimations de gradient très bruitées → nombreux épisodes nécessaires.",
+        feedback_incorrect: "Note : G_t = Σ γᵏ r_{t+k} est calculé sur un épisode complet. La variance de cette somme est très élevée. L'Actor-Critic résout ce problème en remplaçant G_t par l'avantage A(s,a) = Q(s,a)−V(s)."
+      },
+      {
+        q: "Dans Actor-Critic, le Critic apprend V(s). Pourquoi utilise-t-on A(s,a) = Q(s,a)−V(s) plutôt que Q(s,a) seul pour mettre à jour l'Actor ?",
+        options: [
+          "A(s,a) mesure si une action est meilleure QUE LA MOYENNE des actions dans cet état — variance réduite",
+          "A(s,a) est plus facile à calculer que Q(s,a)",
+          "A(s,a) est toujours positif, ce qui facilite l'optimisation",
+          "Q(s,a) n'est pas différentiable"
+        ],
+        correct: 0,
+        feedback_correct: "Correct. A(s,a) centre le signal d'apprentissage. Si V(s)=10 et Q(s,a)=11, l'avantage est +1. Même si les récompenses absolues sont élevées, l'actor apprend uniquement si l'action est MEILLEURE que la moyenne.",
+        feedback_incorrect: "Note : V(s) est la valeur de base (baseline). En soustrayant V(s) de Q(s,a), on obtient un signal centré autour de zéro. Cela réduit la variance sans changer l'espérance du gradient."
+      },
+      {
+        q: "Un agent REINFORCE joue 100 épisodes sur un labyrinthe. Dans 90 épisodes il obtient G_t = +1, dans 10 épisodes G_t = +100 (chemin optimal). La politique met des centaines d'épisodes à converger. Quelle est la cause principale ?",
+        options: [
+          "Le taux d'apprentissage est trop élevé",
+          "La variance élevée de G_t — rares épisodes de succès noyés dans le bruit des épisodes ordinaires",
+          "REINFORCE ne fonctionne pas sur les labyrinthes",
+          "Le réseau de politique est trop petit"
+        ],
+        correct: 3,
+        feedback_correct: "Exact. Les 10 épisodes avec G_t=+100 donnent un signal fort, mais les 90 épisodes avec G_t=+1 dominent l'estimation du gradient. La moyenne est biaisée vers les comportements médiocres. Actor-Critic résout cela en utilisant A(s,a) au lieu de G_t brut.",
+        feedback_incorrect: "Note : G_t brut est très bruité. Les épisodes rares mais importants (chemin optimal) sont dilués dans la masse. L'Actor-Critic utilise le Critic pour estimer la valeur de référence et calculer l'avantage — signal plus précis, convergence plus rapide."
+      }
+    ]
+  },
+  'm7': {
+    id: 'm7',
+    questions: [
+      {
+        q: "PPO utilise une fonction objective 'clippée'. Quel problème cette technique résout-elle ?",
+        options: [
+          "Le sur-ajustement du réseau de politique",
+          "Les mises à jour de politique trop grandes qui déstabilisent l'apprentissage (mise à jour catastrophique)",
+          "La lenteur de convergence dans les espaces discrets",
+          "Le manque de données dans le Replay Buffer"
+        ],
+        correct: 1,
+        feedback_correct: "Exact. Le clipping empêche le ratio π_new/π_old de s'éloigner trop de 1. Cela garantit que les mises à jour restent dans une 'région de confiance' sans résoudre un problème d'optimisation contraint comme TRPO.",
+        feedback_incorrect: "Note : Sans contrainte, une grande mise à jour peut effondrer la performance. PPO clippe le ratio r(θ) = π(a|s;θ)/π(a|s;θ_old) entre [1−ε, 1+ε]. La mise à jour reste modérée même si le gradient est grand."
+      },
+      {
+        q: "TRPO et PPO résolvent tous les deux le problème de mise à jour catastrophique. Pourquoi PPO est-il préféré en pratique ?",
+        options: [
+          "PPO converge vers une meilleure politique finale",
+          "PPO nécessite moins de mémoire GPU",
+          "PPO évite le calcul coûteux de la matrice de Fisher et l'optimisation contrainte, restant simple et parallélisable",
+          "TRPO ne fonctionne que sur des environnements discrets"
+        ],
+        correct: 2,
+        feedback_correct: "Correct. TRPO résout un problème d'optimisation contraint à chaque étape (calcul de la matrice de Fisher, ligne de recherche conjuguée). PPO remplace tout ça par un simple clip — aussi stable en pratique, infiniment plus simple.",
+        feedback_incorrect: "Note : TRPO calcule la matrice de Fisher (O(n²) paramètres) et utilise la méthode de gradient conjugué. Sur des réseaux modernes avec des millions de paramètres, c'est computationnellement prohibitif."
+      },
+      {
+        q: "Dans PPO, le ratio r(θ) = π_new(a|s) / π_old(a|s) est clippé dans [1−ε, 1+ε] avec ε=0.2. Si l'avantage A(s,a)=+5 et le gradient pousserait r(θ) à 1.8, quelle valeur effective de r(θ) sera utilisée ?",
+        options: [
+          "1.8 — PPO utilise le gradient complet",
+          "0.8 — le clipping est symétrique",
+          "1.2 — la valeur est clippée à 1+ε = 1.2",
+          "5 — l'avantage remplace le ratio"
+        ],
+        correct: 2,
+        feedback_correct: "Exact. Avec ε=0.2, le ratio est limité à [0.8, 1.2]. Si le gradient suggère r=1.8, PPO utilise min(r·A, clip(r,0.8,1.2)·A) = min(1.8×5, 1.2×5) = min(9, 6) = 6. La mise à jour est conservative.",
+        feedback_incorrect: "Note : L'objectif PPO est L_CLIP = min(r·A, clip(r, 1−ε, 1+ε)·A). Avec r=1.8 et A=+5 : min(9, 1.2×5) = min(9, 6) = 6. La valeur clippée (6) est utilisée car elle est plus conservative."
+      }
+    ]
+  },
+  'm8': {
+    id: 'm8',
+    questions: [
+      {
+        q: "Un ingénieur veut tester rapidement 5 algorithmes RL sur CartPole avec le moins de code possible. Quel outil est le plus adapté ?",
+        options: [
+          "Stable Baselines 3 — implémentations prêtes à l'emploi avec une API unifiée",
+          "Implémenter chaque algorithme from scratch en PyTorch",
+          "TensorFlow — plus rapide pour le prototypage",
+          "RLlib — conçu pour les tests rapides"
+        ],
+        correct: 0,
+        feedback_correct: "Exact. SB3 offre PPO, A2C, DQN, SAC, TD3 avec une API commune : model = PPO('MlpPolicy', env); model.learn(10000). Idéal pour comparer des algorithmes rapidement.",
+        feedback_incorrect: "Note : Stable Baselines 3 est conçu précisément pour ce cas. RLlib est plus adapté à la production à grande échelle. Implémenter from scratch est excellent pour apprendre mais long pour comparer."
+      },
+      {
+        q: "Quelle est la différence fondamentale entre l'API Gym env.step(action) et env.reset() ?",
+        options: [
+          "reset() est plus rapide que step()",
+          "step() fait avancer la simulation d'une étape et retourne (obs, reward, done, trunc, info) ; reset() initialise un nouvel épisode",
+          "step() ne peut être appelé qu'après que done=True",
+          "reset() recharge le modèle depuis le disque"
+        ],
+        correct: 3,
+        feedback_correct: "Correct. reset() démarre un épisode (retourne l'observation initiale). step(a) applique l'action a et retourne le résultat de cette étape. Quand done=True, il faut appeler reset() pour démarrer un nouvel épisode.",
+        feedback_incorrect: "Note : Le cycle Gym est : obs = env.reset() → boucle { obs, rew, done, _, _ = env.step(a); if done: obs = env.reset() }. Cette interface standardisée permet de changer l'environnement sans modifier l'agent."
+      },
+      {
+        q: "Un chercheur veut entraîner PPO sur 100 environnements en parallèle pour accélérer la collecte de données. Quelle bibliothèque est la plus adaptée à ce scénario à grande échelle ?",
+        options: [
+          "Stable Baselines 3 uniquement — supporte le multi-env nativement",
+          "CleanRL — conçu pour les expériences reproductibles à grande échelle",
+          "RLlib (Ray) — framework distribué conçu pour l'entraînement multi-GPU et multi-machine",
+          "OpenAI Gym seul suffit pour la parallélisation"
+        ],
+        correct: 2,
+        feedback_correct: "Exact. RLlib est construit sur Ray, un framework de calcul distribué. Il gère nativement l'entraînement sur des centaines de workers, plusieurs GPUs et plusieurs machines. SB3 supporte le multi-env basique, mais RLlib est conçu pour la production à grande échelle.",
+        feedback_incorrect: "Note : SB3 supporte VecEnv (quelques dizaines d'environnements). Pour 100+ environnements sur plusieurs machines, RLlib sur Ray est la référence industrielle. CleanRL est excellent pour la lisibilité, pas pour la scalabilité."
+      }
+    ]
+  },
+  'm9': {
+    id: 'm9',
+    questions: [
+      {
+        q: "Un robot chirurgical doit contrôler 7 articulations en continu. Quel algorithme est le plus adapté ?",
+        options: [
+          "DQN — rapide et bien testé",
+          "Double DQN — réduit le biais",
+          "PPO — conçu pour les actions continues, stable et polyvalent",
+          "Dueling DQN — meilleure décomposition de valeur"
+        ],
+        correct: 2,
+        feedback_correct: "Correct. DQN et ses variantes (Double, Dueling) sont pour les actions DISCRÈTES. Les contrôles continus (angles, forces) nécessitent PPO, SAC ou TD3. PPO est le plus recommandé pour commencer.",
+        feedback_incorrect: "Note : DQN famille requiert de discrétiser les actions. Avec 7 articulations continues, la discrétisation en seulement 10 niveaux par articulation donne 10^7 = 10 millions d'actions. Impossible. PPO gère directement le continu."
+      },
+      {
+        q: "Après 1M de pas d'entraînement, DQN a une performance de 72 et PPO de 91. Peut-on en conclure que PPO est TOUJOURS supérieur à DQN ?",
+        options: [
+          "Oui, PPO est universellement meilleur",
+          "Non — les performances dépendent de l'environnement, de l'espace d'actions, des hyperparamètres et de la durée d'entraînement",
+          "Oui, car PPO est plus récent",
+          "Non, car DQN a un Replay Buffer et PPO non"
+        ],
+        correct: 1,
+        feedback_correct: "Correct. En DRL, aucun algorithme n'est universellement supérieur (No Free Lunch theorem). DQN peut surpasser PPO sur des jeux Atari avec des actions discrètes et bien définies. Les comparaisons dépendent du contexte.",
+        feedback_incorrect: "Note : Le 'No Free Lunch theorem' s'applique. DQN est particulièrement performant sur Atari (actions discrètes). PPO excelle en robotique (actions continues). Toujours benchmarker sur votre environnement spécifique."
+      }
+    ]
+  }
+};
+
+// ============================================================
+// NAVIGATION
+// ============================================================
+function goToModule(id) {
+  if (id > 9 && id !== 10) return;
+  // Check if locked
+  if (id >= 1 && !isModuleUnlocked(id)) return;
+  state.currentModule = id;
+  saveState();
+  renderNav();
+  renderPages();
+  window.scrollTo(0,0);
+}
+
+function isModuleUnlocked(id) {
+  if (id === 0) return true;
+  if (id === 1) return true;
+  // Module N unlocked if module N-1 completed
+  return state.completedModules.has(id - 1);
+}
+
+function completeModule(id, earnedXP) {
+  if (state.completedModules.has(id)) return;
+  state.completedModules.add(id);
+  const xpToAdd = (earnedXP !== undefined) ? earnedXP : MODULES_DATA[id].xp;
+  state.xp += xpToAdd;
+  state.moduleXP = state.moduleXP || {};
+  state.moduleXP[id] = xpToAdd;
+  saveState();
+  updateXPDisplay();
+  renderNav();
+  updateDashboard();
+
+  // Show completion banner with score
+  const el = document.getElementById(`m${id}-complete`);
+  if (el) {
+    const quiz = QUIZZES[`m${id}`];
+    const total = quiz ? quiz.questions.length : 3;
+    const correct = quiz ? quiz.questions.filter((q,qi) => state.quizAnswered[`m${id}_${qi}`] === q.correct).length : 0;
+    const pct = Math.round(correct / total * 100);
+    const xpEl = el.querySelector('.mc-xp');
+    if (xpEl) xpEl.innerHTML = `+${xpToAdd} XP gagnés &nbsp;·&nbsp; <span style="color:var(--lavender)">${correct}/${total} correct · ${pct}%</span>`;
+    el.classList.add('visible');
+  }
+}
+
+// ============================================================
+// RENDER NAV
+// ============================================================
+function renderNav() {
+  const nav = document.getElementById('sidebar-nav');
+  nav.innerHTML = '';
+  const allModules = [...MODULES_DATA, { id: 10, title: 'Résultats Finaux', desc: '' }];
+  allModules.forEach(m => {
+    if (m.id === 10) {
+      if (!state.completedModules.has(9)) return;
+    }
+    const unlocked = m.id === 0 || m.id === 10 ? true : isModuleUnlocked(m.id);
+    const done = state.completedModules.has(m.id);
+    const current = state.currentModule === m.id;
+    const div = document.createElement('div');
+    div.className = `nav-item${!unlocked ? ' locked' : ''}${done ? ' completed' : ''}${current ? ' active' : ''}`;
+    const numClass = done ? 'done' : (current ? 'current' : 'pending');
+    const numText = done ? '✓' : m.id;
+    div.innerHTML = `
+      <div class="nav-num ${numClass}">${numText}</div>
+      <div class="nav-text">${m.title}</div>
+      ${!unlocked ? '<span class="lock-icon">🔒</span>' : ''}
+    `;
+    if (unlocked) div.addEventListener('click', () => goToModule(m.id));
+    nav.appendChild(div);
+  });
+}
+
+// ============================================================
+// RENDER PAGES
+// ============================================================
+function renderPages() {
+  document.querySelectorAll('.module-page').forEach(p => p.classList.remove('active'));
+  const page = document.getElementById(`page-${state.currentModule}`);
+  if (page) page.classList.add('active');
+  // Inject/update progress banner for modules 1-9
+  const mid = state.currentModule;
+  if (mid >= 1 && mid <= 9) {
+    const quizKey = `m${mid}`;
+    const quiz = QUIZZES[quizKey];
+    const header = page ? page.querySelector('.module-header') : null;
+    if (header && quiz) {
+      let banner = page.querySelector('.module-progress-banner');
+      if (!banner) {
+        banner = document.createElement('div');
+        banner.className = 'module-progress-banner';
+        header.after(banner);
+      }
+      const total = quiz.questions.length;
+      const answered = quiz.questions.filter((_, qi) => state.quizAnswered[`${quizKey}_${qi}`] !== undefined).length;
+      const dotsHtml = Array.from({length: total}, (_, i) =>
+        `<div class="mpb-dot${state.quizAnswered[`${quizKey}_${i}`] !== undefined ? ' done' : ''}"></div>`
+      ).join('');
+      if (state.completedModules.has(mid)) {
+        banner.innerHTML = `<span>✓ Module complété — passez au suivant.</span><div class="mpb-steps">${dotsHtml}</div>`;
+      } else {
+        banner.innerHTML = `<span>📋 Répondez aux <strong>${total} questions du quiz</strong> pour débloquer le module suivant.</span><div class="mpb-steps">${dotsHtml}</div>`;
+      }
+    }
+  }
+}
+
+// ============================================================
+// UPDATE XP
+// ============================================================
+function updateXPDisplay() {
+  const pct = Math.min(100, Math.round(state.xp / MAX_XP * 100));
+  document.getElementById('xp-bar').style.width = pct + '%';
+  document.getElementById('xp-display').textContent = state.xp + ' / 1 350 XP';
+  updateDashboard();
+}
+
+function updateDashboard() {
+  const done = state.completedModules.size;
+  const pct = Math.round(done / 10 * 100);
+  const scorePct = Math.round(state.xp / MAX_XP * 100);
+
+  function gradeLabel(p) {
+    if (p >= 90) return '🏆 Excellent — ' + p + '%';
+    if (p >= 75) return '⭐ Très bien — ' + p + '%';
+    if (p >= 60) return '✓ Bien — ' + p + '%';
+    if (p >= 40) return '📚 Passable — ' + p + '%';
+    if (p > 0)   return '🔄 En progression — ' + p + '%';
+    return '—';
+  }
+
+  const xpDisplay = state.xp + ' <span style="font-size:1rem;color:var(--text-light);font-family:\'DM Sans\',sans-serif">/ 1 350</span>';
+  document.getElementById('dash-xp').innerHTML = xpDisplay;
+  const gradeEl = document.getElementById('dash-grade');
+  if (gradeEl) gradeEl.textContent = gradeLabel(scorePct);
+
+  document.getElementById('dash-done').textContent = done;
+  document.getElementById('dash-pct').textContent = pct + '%';
+  renderRoadmap();
+  // Final page
+  document.getElementById('final-total-xp').textContent = state.xp + ' XP';
+  document.getElementById('res-xp').innerHTML = xpDisplay;
+  const resGrade = document.getElementById('res-grade');
+  if (resGrade) resGrade.textContent = gradeLabel(scorePct);
+  document.getElementById('res-done').textContent = done;
+  document.getElementById('res-pct').textContent = pct + '%';
+}
+
+// ============================================================
+// ROADMAP
+// ============================================================
+function renderRoadmap() {
+  const rm = document.getElementById('roadmap');
+  if (!rm) return;
+  rm.innerHTML = '';
+  MODULES_DATA.slice(1).forEach(m => {
+    const unlocked = isModuleUnlocked(m.id);
+    const done = state.completedModules.has(m.id);
+    const current = state.currentModule === m.id;
+    const div = document.createElement('div');
+    let cls = 'roadmap-item';
+    if (!unlocked) cls += ' locked-item';
+    else if (done) cls += ' done-item';
+    else if (current) cls += ' current-item';
+    div.className = cls;
+    const numClass = done ? 'done' : (current ? 'current' : 'locked');
+    const numText = done ? '✓' : m.id;
+    const statusClass = done ? 'done' : (current ? 'current' : 'locked');
+    const statusText = done ? 'Complété' : (current ? 'En cours' : (unlocked ? 'Disponible' : 'Verrouillé'));
+    div.innerHTML = `
+      <div class="rm-num ${numClass}">${numText}</div>
+      <div class="rm-info">
+        <div class="rm-title">${m.title}</div>
+        <div class="rm-desc">${m.desc}</div>
+      </div>
+      <div class="rm-status ${statusClass}">${statusText}</div>
+    `;
+    if (unlocked) div.addEventListener('click', () => goToModule(m.id));
+    rm.appendChild(div);
+  });
+}
+
+// ============================================================
+// QUIZ ENGINE
+// ============================================================
+function renderQuiz(containerId, quizKey) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  const quiz = QUIZZES[quizKey];
+  if (!quiz) return;
+  container.innerHTML = '';
+
+  quiz.questions.forEach((qData, qi) => {
+    const qDiv = document.createElement('div');
+    qDiv.style.marginBottom = '24px';
+
+    const qNum = document.createElement('div');
+    qNum.style.cssText = 'font-size:0.68rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--purple);margin-bottom:8px;font-weight:500';
+    qNum.textContent = `Question ${qi + 1} / ${quiz.questions.length}`;
+    qDiv.appendChild(qNum);
+
+    const qText = document.createElement('div');
+    qText.className = 'quiz-question';
+    qText.textContent = qData.q;
+    qDiv.appendChild(qText);
+
+    const opts = document.createElement('div');
+    opts.className = 'quiz-options';
+
+    const letters = ['A','B','C','D'];
+    let answered = state.quizAnswered[`${quizKey}_${qi}`];
+
+    qData.options.forEach((opt, oi) => {
+      const optDiv = document.createElement('div');
+      optDiv.className = 'quiz-option';
+      if (answered !== undefined) {
+        if (oi === qData.correct) optDiv.classList.add('correct');
+        else if (oi === answered && answered !== qData.correct) optDiv.classList.add('incorrect');
+      }
+      optDiv.innerHTML = `<div class="opt-letter">${letters[oi]}</div><div class="opt-text">${opt}</div>`;
+
+      if (answered === undefined) {
+        optDiv.addEventListener('click', () => handleQuizAnswer(quizKey, qi, oi, qData, containerId));
+      }
+      opts.appendChild(optDiv);
+    });
+
+    qDiv.appendChild(opts);
+
+    const fb = document.createElement('div');
+    fb.className = 'quiz-feedback';
+    if (answered !== undefined) {
+      fb.classList.add('visible');
+      if (answered === qData.correct) {
+        fb.classList.add('correct-fb');
+        fb.innerHTML = `<div class="fb-title">✓ Correct</div>${qData.feedback_correct}`;
+      } else {
+        fb.classList.add('incorrect-fb');
+        fb.innerHTML = `<div class="fb-title">Note</div>${qData.feedback_incorrect}`;
+      }
+    }
+    qDiv.appendChild(fb);
+    container.appendChild(qDiv);
+  });
+
+  // Check if all answered for this quiz
+  checkQuizCompletion(quizKey, containerId);
+}
+
+function handleQuizAnswer(quizKey, qi, oi, qData, containerId) {
+  state.quizAnswered[`${quizKey}_${qi}`] = oi;
+  saveState();
+  renderQuiz(containerId, quizKey);
+  checkQuizCompletion(quizKey, containerId);
+  // Refresh progress banner dots
+  renderPages();
+}
+
+function checkQuizCompletion(quizKey, containerId) {
+  const quiz = QUIZZES[quizKey];
+  const allAnswered = quiz.questions.every((_, qi) => state.quizAnswered[`${quizKey}_${qi}`] !== undefined);
+  if (allAnswered) {
+    const mId = parseInt(quizKey.replace('m',''));
+    // Calculate XP: 50 per correct answer
+    const correctCount = quiz.questions.filter((q, qi) => state.quizAnswered[`${quizKey}_${qi}`] === q.correct).length;
+    const earnedXP = correctCount * 50;
+    completeModule(mId, earnedXP);
+  }
+}
+
+// ============================================================
+// MODULE 1 — LAB
+// ============================================================
+const GRID = [
+  [0,0,0,1,0],
+  [0,1,0,1,0],
+  [0,1,0,0,0],
+  [0,0,0,1,2],
+  [0,1,0,0,0],
+];
+// 0=empty,1=wall,2=goal
+const OBSTACLES = [[0,3],[2,3]]; // positions that also give -50
+
+let agentPos = {r:0,c:0};
+let labRunning = false;
+let labInterval = null;
+let cumulativeReward = 0;
+let steps = 0;
+let episodes = 0;
+
+function renderWarehouse() {
+  const grid = document.getElementById('warehouse-grid');
+  if (!grid) return;
+  grid.innerHTML = '';
+  for (let r = 0; r < 5; r++) {
+    for (let c = 0; c < 5; c++) {
+      const cell = document.createElement('div');
+      cell.className = 'cell';
+      const isAgent = (agentPos.r === r && agentPos.c === c);
+      const cellType = GRID[r][c];
+      if (isAgent) { cell.className = 'cell agent'; cell.textContent = '🤖'; }
+      else if (cellType === 1) { cell.className = 'cell wall'; cell.textContent = '🧱'; }
+      else if (cellType === 2) { cell.className = 'cell goal'; cell.textContent = '🎯'; }
+      else if (isObstacle(r,c)) { cell.className = 'cell obstacle'; cell.textContent = '⚠️'; }
+      else { cell.className = 'cell empty'; }
+      grid.appendChild(cell);
+    }
+  }
+}
+
+function isObstacle(r,c) {
+  return OBSTACLES.some(o => o[0]===r && o[1]===c);
+}
+
+function addLog(msg, cls='') {
+  const log = document.getElementById('lab1-log');
+  if (!log) return;
+  const entry = document.createElement('div');
+  entry.className = 'log-entry ' + cls;
+  entry.textContent = msg;
+  log.appendChild(entry);
+  log.scrollTop = log.scrollHeight;
+}
+
+function labStep() {
+  const actions = [[-1,0],[1,0],[0,-1],[0,1]];
+  const names = ['↑ Haut','↓ Bas','← Gauche','→ Droite'];
+  const aIdx = Math.floor(Math.random()*4);
+  const [dr,dc] = actions[aIdx];
+  const nr = agentPos.r + dr;
+  const nc = agentPos.c + dc;
+
+  steps++;
+  document.getElementById('lab1-steps').textContent = steps;
+
+  // Wall check
+  if (nr < 0 || nr >= 5 || nc < 0 || nc >= 5 || GRID[nr][nc] === 1) {
+    cumulativeReward -= userRewards.battery;
+    addLog(`${names[aIdx]} — Mur! Récompense: −${userRewards.battery}`, 'reward-neg');
+  } else {
+    agentPos = {r:nr,c:nc};
+    // Goal?
+    if (GRID[nr][nc] === 2) {
+      cumulativeReward += userRewards.goal;
+      addLog(`${names[aIdx]} — 🎯 OBJECTIF! +${userRewards.goal}`, 'reward-pos');
+      renderWarehouse();
+      document.getElementById('lab1-reward').textContent = cumulativeReward;
+      episodes++;
+      document.getElementById('lab1-episodes').textContent = episodes;
+      agentPos = {r:0,c:0};
+      cumulativeReward = 0;
+      return;
+    } else if (isObstacle(nr,nc)) {
+      cumulativeReward -= userRewards.obstacle;
+      addLog(`${names[aIdx]} — ⚠️ Obstacle! −${userRewards.obstacle}`, 'reward-neg');
+    } else {
+      cumulativeReward -= userRewards.battery;
+      addLog(`${names[aIdx]} — Déplacement −${userRewards.battery}`, 'action');
+    }
+  }
+
+  document.getElementById('lab1-reward').textContent = cumulativeReward;
+  renderWarehouse();
+
+  if (steps >= 200) {
+    episodes++;
+    document.getElementById('lab1-episodes').textContent = episodes;
+    agentPos = {r:0,c:0};
+    cumulativeReward = 0;
+    steps = 0;
+    addLog('--- Épisode terminé (limite) ---');
+  }
+}
+
+// ============================================================
+// MODULE 1 — LAB (REWARD CONFIGURATOR)
+// ============================================================
+let userRewards = { goal: 100, obstacle: 50, battery: 1, time: 2 };
+
+function initRewardConfigurator() {
+  const sliders = [
+    { id: 'rw-goal',     valId: 'rw-goal-val',     key: 'goal',     fmt: v => `+${v}`,  color: 'var(--success)' },
+    { id: 'rw-obstacle', valId: 'rw-obstacle-val',  key: 'obstacle', fmt: v => `−${v}`,  color: 'var(--error)' },
+    { id: 'rw-battery',  valId: 'rw-battery-val',   key: 'battery',  fmt: v => `−${v}`,  color: 'var(--text-mid)' },
+    { id: 'rw-time',     valId: 'rw-time-val',      key: 'time',     fmt: v => `−${v}`,  color: 'var(--text-mid)' },
+  ];
+
+  sliders.forEach(s => {
+    const input = document.getElementById(s.id);
+    const valEl = document.getElementById(s.valId);
+    if (!input || !valEl) return;
+    input.addEventListener('input', () => {
+      userRewards[s.key] = parseInt(input.value);
+      valEl.textContent = s.fmt(input.value);
+      updateRewardPreview();
+    });
+  });
+
+  const launchBtn = document.getElementById('lab1-launch');
+  if (launchBtn) {
+    launchBtn.addEventListener('click', () => {
+      document.getElementById('lab1-configurator').style.display = 'none';
+      document.getElementById('lab1-sim').style.display = 'block';
+      renderWarehouse();
+      // Clear any stale interval
+      if (labInterval) { clearInterval(labInterval); labInterval = null; }
+      labRunning = true;
+      const runBtnEl = document.getElementById('lab1-run');
+      if (runBtnEl) runBtnEl.textContent = '⏸ Pause';
+      labInterval = setInterval(labStep, 200);
+      // Show reflection after 8s
+      setTimeout(showLabReflection, 8000);
+    });
+  }
+}
+
+function updateRewardPreview() {
+  const el = document.getElementById('rw-preview');
+  if (!el) return;
+  el.textContent = `Objectif = +${userRewards.goal} | Obstacle = −${userRewards.obstacle} | Batterie = −${userRewards.battery}/pas | Temps = −${userRewards.time} max`;
+}
+
+function showLabReflection() {
+  const reflectionEl = document.getElementById('lab1-reflection');
+  if (!reflectionEl) return;
+  reflectionEl.style.display = 'block';
+
+  const { goal, obstacle, battery } = userRewards;
+  let obsText = '';
+  let explanation = '';
+
+  const ratio = goal / (obstacle + battery * 10);
+
+  if (battery === 0 && obstacle === 0) {
+    obsText = 'Le robot explore librement — aucune pénalité ne freine ses mouvements.';
+    explanation = 'Sans pénalité de déplacement ni d\'obstacle, l\'agent n\'a aucune raison d\'être efficace. Il atteindra l\'objectif, mais prendra le chemin le plus long. La récompense ne guide pas l\'efficacité.';
+  } else if (ratio > 5) {
+    obsText = 'Le robot prend le chemin le plus court — la récompense objectif compense largement les pénalités.';
+    explanation = `Avec objectif = +${goal} et pénalités modestes, chaque déplacement vers l'objectif est rentable. L'agent apprend naturellement à optimiser sa trajectoire.`;
+  } else if (ratio < 1) {
+    obsText = 'Le robot tourne en boucle — les pénalités sont trop élevées par rapport à la récompense objectif.';
+    explanation = `Avec obstacle = −${obstacle} et batterie = −${battery}/pas, le coût d'atteindre l'objectif dépasse souvent le gain. L'agent hésite et oscille plutôt que de progresser.`;
+  } else {
+    obsText = 'Le robot évite les obstacles mais reste prudent — équilibre entre exploration et sécurité.';
+    explanation = 'Votre configuration crée un compromis intéressant : l\'agent préfère les chemins sûrs mais pas toujours les plus courts. C\'est typique d\'une fonction de récompense bien calibrée.';
+  }
+
+  document.getElementById('lab1-obs-text').textContent = obsText;
+  document.getElementById('lab1-explanation').innerHTML = explanation;
+}
+
+function initLab1() {
+  const runBtn = document.getElementById('lab1-run');
+  const resetBtn = document.getElementById('lab1-reset');
+  if (!resetBtn) return;
+
+  initRewardConfigurator();
+
+  if (runBtn) {
+    runBtn.addEventListener('click', () => {
+      if (labRunning) {
+        clearInterval(labInterval);
+        labInterval = null;
+        labRunning = false;
+        runBtn.textContent = '▶ Reprendre';
+      } else {
+        labRunning = true;
+        runBtn.textContent = '⏸ Pause';
+        labInterval = setInterval(labStep, 200);
+      }
+    });
+  }
+
+  resetBtn.addEventListener('click', () => {
+    clearInterval(labInterval);
+    labRunning = false;
+    agentPos = {r:0,c:0};
+    cumulativeReward = 0;
+    steps = 0;
+    episodes = 0;
+    document.getElementById('lab1-reward').textContent = 0;
+    document.getElementById('lab1-steps').textContent = 0;
+    document.getElementById('lab1-episodes').textContent = 0;
+    const log = document.getElementById('lab1-log');
+    if (log) log.innerHTML = '';
+    // Return to configurator
+    document.getElementById('lab1-sim').style.display = 'none';
+    document.getElementById('lab1-configurator').style.display = 'block';
+    document.getElementById('lab1-reflection').style.display = 'none';
+    renderWarehouse();
+  });
+}
+
+// ============================================================
+// MODULE 2 — NEURAL NET VIZ (STATE-CONTROLLED)
+// ============================================================
+let nnUserPrediction = null;
+
+function computeQFromState(distance, direction, battery, obstacle) {
+  // Deterministic-ish Q-values based on state — not purely random
+  let qForward, qLeft, qRight;
+
+  const distBonus = distance === 'proche' ? 3 : (distance === 'moyen' ? 0 : -2);
+  const obstacleForward = (obstacle === 'oui') ? -6 : 0;
+  const lowBattery = battery === 'critique' ? -3 : (battery === 'faible' ? -1 : 0);
+
+  if (direction === 'avant') {
+    qForward = (5 + distBonus + obstacleForward + lowBattery + (Math.random()*2 - 1)).toFixed(1);
+    qLeft    = (1 + distBonus * 0.3 + lowBattery + (Math.random()*2 - 1)).toFixed(1);
+    qRight   = (2 + distBonus * 0.3 + lowBattery + (Math.random()*2 - 1)).toFixed(1);
+  } else if (direction === 'gauche') {
+    qForward = (1 + obstacleForward + lowBattery + (Math.random()*2 - 1)).toFixed(1);
+    qLeft    = (6 + distBonus + lowBattery + (Math.random()*2 - 1)).toFixed(1);
+    qRight   = (-1 + lowBattery + (Math.random()*2 - 1)).toFixed(1);
+  } else if (direction === 'droite') {
+    qForward = (1 + obstacleForward + lowBattery + (Math.random()*2 - 1)).toFixed(1);
+    qLeft    = (-1 + lowBattery + (Math.random()*2 - 1)).toFixed(1);
+    qRight   = (6 + distBonus + lowBattery + (Math.random()*2 - 1)).toFixed(1);
+  } else { // derriere
+    qForward = (-2 + obstacleForward + lowBattery + (Math.random()*2 - 1)).toFixed(1);
+    qLeft    = (3 + lowBattery + (Math.random()*2 - 1)).toFixed(1);
+    qRight   = (3 + lowBattery + (Math.random()*2 - 1)).toFixed(1);
+  }
+
+  return [parseFloat(qForward), parseFloat(qLeft), parseFloat(qRight)];
+}
+
+function initNNViz() {
+  const computeBtn = document.getElementById('nn-compute');
+  const resetBtn = document.getElementById('nn-reset-btn');
+  if (!computeBtn) return;
+
+  // Prediction buttons
+  document.querySelectorAll('.nn-pred-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.nn-pred-btn').forEach(b => {
+        b.style.background = 'rgba(255,255,255,0.7)';
+        b.style.borderColor = 'var(--border)';
+        b.style.color = 'var(--text-mid)';
+      });
+      btn.style.background = 'rgba(232,99,122,0.12)';
+      btn.style.borderColor = 'var(--rose)';
+      btn.style.color = 'var(--rose)';
+      nnUserPrediction = btn.dataset.action;
+    });
+  });
+
+  computeBtn.addEventListener('click', () => {
+    const distance  = document.getElementById('nn-distance').value;
+    const direction = document.getElementById('nn-direction').value;
+    const battery   = document.getElementById('nn-battery').value;
+    const obstacle  = document.getElementById('nn-obstacle').value;
+
+    // Update input node labels
+    const distLabel = { proche: '1', moyen: '4', loin: '8' }[distance] || '4';
+    const batLabel  = { pleine: '1.0', faible: '0.5', critique: '0.1' }[battery] || '1.0';
+    const obsLabel  = obstacle === 'oui' ? '1' : '0';
+    document.getElementById('nn-in-dist').textContent = distLabel;
+    document.getElementById('nn-in-dir').textContent  = direction === 'avant' ? '0°' : direction === 'gauche' ? '90°' : direction === 'droite' ? '-90°' : '180°';
+    document.getElementById('nn-in-bat').textContent  = batLabel;
+    document.getElementById('nn-in-obs').textContent  = obsLabel;
+
+    const [qForward, qLeft, qRight] = computeQFromState(distance, direction, battery, obstacle);
+
+    document.getElementById('qv-forward').textContent = qForward;
+    document.getElementById('qv-left').textContent = qLeft;
+    document.getElementById('qv-right').textContent = qRight;
+    document.getElementById('out-forward').textContent = qForward;
+    document.getElementById('out-left').textContent = qLeft;
+    document.getElementById('out-right').textContent = qRight;
+
+    const vals = [qForward, qLeft, qRight];
+    const maxVal = Math.max(...vals);
+    const actions = ['Avancer','Gauche','Droite'];
+    const bestIdx = vals.indexOf(maxVal);
+
+    // Activate nodes
+    document.querySelectorAll('.nn-node').forEach(n => n.classList.remove('active'));
+    const outputs = document.querySelectorAll('#nn-outputs .nn-node');
+    if (outputs[bestIdx]) outputs[bestIdx].classList.add('active');
+
+    // Build comparison with user prediction
+    let predFeedback = '';
+    if (nnUserPrediction) {
+      if (nnUserPrediction === actions[bestIdx]) {
+        predFeedback = ` ✓ Votre prédiction (${nnUserPrediction}) correspond au choix du réseau.`;
+      } else {
+        predFeedback = ` Vous avez prédit ${nnUserPrediction}, mais le réseau choisit ${actions[bestIdx]} — explorez pourquoi les Q-valeurs divergent de votre intuition.`;
+      }
+    }
+
+    document.getElementById('nn-action-note').style.display = 'flex';
+    document.getElementById('nn-action-text').innerHTML =
+      `Le réseau choisit <strong>${actions[bestIdx]}</strong> (Q = ${maxVal}). La politique greedy sélectionne toujours l'action avec la Q-valeur la plus haute.${predFeedback}`;
+  });
+
+  resetBtn.addEventListener('click', () => {
+    document.getElementById('qv-forward').textContent = '—';
+    document.getElementById('qv-left').textContent = '—';
+    document.getElementById('qv-right').textContent = '—';
+    document.getElementById('out-forward').textContent = '?';
+    document.getElementById('out-left').textContent = '?';
+    document.getElementById('out-right').textContent = '?';
+    document.getElementById('nn-action-note').style.display = 'none';
+    document.querySelectorAll('.nn-node').forEach(n => n.classList.remove('active'));
+    document.querySelectorAll('.nn-pred-btn').forEach(b => {
+      b.style.background = 'rgba(255,255,255,0.7)';
+      b.style.borderColor = 'var(--border)';
+      b.style.color = 'var(--text-mid)';
+    });
+    nnUserPrediction = null;
+    ['nn-in-dist','nn-in-dir','nn-in-bat','nn-in-obs'].forEach((id, i) => {
+      document.getElementById(id).textContent = ['d','θ','🔋','⚠'][i];
+    });
+  });
+}
+
+// ============================================================
+// MODULE 3 — EPSILON CONTROLLED BY LEARNER
+// ============================================================
+let epsInterval = null;
+let currentEps = null;
+let epsUserPrediction = null;
+
+const EPS_OBSERVATIONS = {
+  '1.0': {
+    label: 'Exploration totale',
+    note: 'Avec ε = 1.0, l\'agent choisit toujours aléatoirement. Il accumule des expériences variées mais n\'exploite jamais sa politique. Taux de succès très faible — l\'agent ne converge pas.',
+    question: 'Quel comportement attendez-vous avec ε = 1.0 ?'
+  },
+  '0.5': {
+    label: 'Équilibre exploration/exploitation',
+    note: 'Avec ε = 0.5, l\'agent explore 50% du temps et exploite 50%. Il commence à apprendre, mais reste imprévisible. C\'est utile en milieu d\'entraînement.',
+    question: 'Comment l\'agent se comportera-t-il avec ε = 0.5 ?'
+  },
+  '0.1': {
+    label: 'Quasi-exploitation',
+    note: 'Avec ε = 0.1, l\'agent exploite sa politique à 90% et explore à 10%. Si l\'entraînement a été suffisant, le taux de succès est élevé. Mais si ε a décru trop vite, un optimum local peut persister.',
+    question: 'Quel risque existe-t-il si ε = 0.1 est atteint trop tôt ?'
+  },
+  '0.01': {
+    label: 'Exploitation pure',
+    note: 'Avec ε = 0.01, l\'agent exploite presque toujours. Si bien entraîné, il performe très bien. Si sous-entraîné, il reste bloqué dans un sous-comportement sans possibilité de s\'en sortir.',
+    question: 'Quel problème peut survenir si ε = 0.01 est fixé dès le début ?'
+  }
+};
+
+function initDQN() {
+  // ---- Target Network C presets (Module 4) ----
+  const TN_DATA = {
+    5:     { title:'C = 5 — Mise à jour quasi-continue', stability:'⚠ Instable', speed:'🔴 Rapide (inutile)', risk:'🔴 Élevé', explanation:'Avec C=5, le Target Network est mis à jour toutes les 5 étapes. La cible change presque aussi vite que le réseau principal — on perd entièrement le bénéfice de la stabilité. C\'est équivalent à ne pas avoir de Target Network.' },
+    100:   { title:'C = 100 — Mise à jour rapide', stability:'🟡 Limitée', speed:'🟡 Bonne', risk:'🟡 Modéré', explanation:'C=100 offre un compromis fragile. La cible est stable sur 100 étapes, ce qui aide un peu. Mais en pratique sur des millions de transitions, c\'est encore trop fréquent pour garantir une vraie stabilité.' },
+    1000:  { title:'C = 1 000 — Zone recommandée ✓', stability:'🟢 Bonne', speed:'🟢 Correcte', risk:'🟢 Faible', explanation:'C=1000 est la plage recommandée pour la plupart des environnements. Le Target Network reste fixe assez longtemps pour fournir une cible stable, sans devenir trop obsolète. C\'est le réglage par défaut dans les implémentations DQN classiques.' },
+    50000: { title:'C = 50 000 — Mise à jour trop rare', stability:'🟡 Bonne au début', speed:'🔴 Très lente', risk:'🟡 Modéré (autre raison)', explanation:'Avec C=50 000, le Target Network devient progressivement obsolète. La politique a évolué mais la cible reste figée sur une ancienne version. L\'apprentissage ralentit considérablement et peut stagner.' }
+  };
+
+  document.querySelectorAll('.tn-preset').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const c = parseInt(btn.dataset.c);
+      const d = TN_DATA[c];
+      if (!d) return;
+
+      document.querySelectorAll('.tn-preset').forEach(b => {
+        b.style.outline = 'none'; b.style.transform = 'none';
+      });
+      btn.style.outline = '2px solid var(--rose)';
+      btn.style.transform = 'scale(1.04)';
+
+      const result = document.getElementById('tn-result');
+      result.style.display = 'block';
+      document.getElementById('tn-title').textContent = d.title;
+      document.getElementById('tn-stability').textContent = d.stability;
+      document.getElementById('tn-speed').textContent = d.speed;
+      document.getElementById('tn-risk').textContent = d.risk;
+      document.getElementById('tn-explanation').textContent = d.explanation;
+    });
+  });
+
+  const epsBtn = document.getElementById('eps-simulate');
+  const epsResetBtn = document.getElementById('eps-reset');
+  if (!epsBtn) return;
+
+  // Preset buttons
+  document.querySelectorAll('.eps-preset-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const eps = parseFloat(btn.dataset.eps);
+      currentEps = eps;
+
+      // Update button styles
+      document.querySelectorAll('.eps-preset-btn').forEach(b => {
+        b.style.outline = 'none';
+        b.style.transform = 'none';
+      });
+      btn.style.outline = '2px solid var(--rose)';
+      btn.style.transform = 'scale(1.03)';
+
+      // Update bar immediately
+      updateEpsDisplay();
+
+      // Show question
+      const obs = EPS_OBSERVATIONS[btn.dataset.eps];
+      const questionBox = document.getElementById('eps-question-box');
+      if (questionBox && obs) {
+        questionBox.style.display = 'block';
+        document.getElementById('eps-question-text').textContent = '🤔 ' + obs.question;
+      }
+
+      // Enable simulate button
+      epsBtn.disabled = false;
+      epsBtn.style.opacity = '1';
+      epsBtn.textContent = `▶ Simuler avec ε = ${eps}`;
+    });
+  });
+
+  // Prediction options
+  document.addEventListener('click', e => {
+    if (e.target.classList.contains('eps-pred-opt')) {
+      document.querySelectorAll('.eps-pred-opt').forEach(b => {
+        b.style.background = 'rgba(255,255,255,0.7)';
+        b.style.borderColor = 'var(--border)';
+        b.style.color = 'var(--text-mid)';
+      });
+      e.target.style.background = 'rgba(232,99,122,0.12)';
+      e.target.style.borderColor = 'var(--rose)';
+      e.target.style.color = 'var(--rose)';
+      epsUserPrediction = e.target.dataset.val;
+    }
+  });
+
+  epsBtn.addEventListener('click', () => {
+    if (epsInterval) {
+      clearInterval(epsInterval);
+      epsInterval = null;
+      epsBtn.textContent = `▶ Simuler avec ε = ${currentEps}`;
+      return;
+    }
+    if (currentEps === null) return;
+
+    epsBtn.textContent = '⏸ Pause';
+    const eps = currentEps;
+    const key = Object.keys(EPS_OBSERVATIONS).reduce((prev, curr) =>
+      Math.abs(parseFloat(curr) - eps) < Math.abs(parseFloat(prev) - eps) ? curr : prev
+    );
+    const obs = EPS_OBSERVATIONS[key];
+
+    // Simulate decay for visual effect (from current eps to near 0 for show)
+    let tempEps = eps;
+    epsInterval = setInterval(() => {
+      tempEps = Math.max(eps * 0.1, tempEps * 0.95);
+      document.getElementById('eps-val').textContent = eps.toFixed(2);
+      document.getElementById('exploit-val').textContent = (1 - eps).toFixed(2);
+      document.getElementById('eps-bar').style.width = (eps * 100) + '%';
+
+      if (tempEps <= eps * 0.12) {
+        clearInterval(epsInterval);
+        epsInterval = null;
+        epsBtn.textContent = `▶ Simuler avec ε = ${eps}`;
+
+        // Show observation
+        const noteEl = document.getElementById('eps-note');
+        noteEl.style.display = 'flex';
+        document.getElementById('eps-note-label').textContent = obs ? obs.label : 'Observation';
+        document.getElementById('eps-note-text').textContent = obs ? obs.note : '';
+      }
+    }, 60);
+  });
+
+  epsResetBtn.addEventListener('click', () => {
+    clearInterval(epsInterval);
+    epsInterval = null;
+    currentEps = null;
+    epsUserPrediction = null;
+    document.getElementById('eps-val').textContent = '—';
+    document.getElementById('exploit-val').textContent = '—';
+    document.getElementById('eps-bar').style.width = '0%';
+    document.getElementById('eps-note').style.display = 'none';
+    const questionBox = document.getElementById('eps-question-box');
+    if (questionBox) questionBox.style.display = 'none';
+    document.querySelectorAll('.eps-preset-btn').forEach(b => {
+      b.style.outline = 'none';
+      b.style.transform = 'none';
+    });
+    epsBtn.disabled = true;
+    epsBtn.style.opacity = '0.5';
+    epsBtn.textContent = 'Sélectionner ε pour lancer la simulation';
+  });
+
+  initReplay();
+}
+
+function updateEpsDisplay() {
+  if (currentEps === null) return;
+  document.getElementById('eps-val').textContent = currentEps.toFixed(2);
+  document.getElementById('exploit-val').textContent = (1 - currentEps).toFixed(2);
+  document.getElementById('eps-bar').style.width = (currentEps * 100) + '%';
+}
+
+const sampleStates = ['[0.2, 0.8, −0.1]', '[−0.5, 0.3, 0.9]', '[0.7, −0.2, 0.4]', '[−0.1, 0.6, −0.8]', '[0.4, 0.1, 0.5]'];
+const sampleActions = ['Avancer','Gauche','Droite'];
+const sampleNextStates = ['[0.3, 0.7, −0.2]', '[−0.4, 0.4, 0.8]', '[0.8, −0.1, 0.3]', '[0.0, 0.5, −0.7]', '[0.5, 0.2, 0.4]'];
+
+let replayBuffer = [];
+
+function initReplay() {
+  const addBtn = document.getElementById('replay-add');
+  const sampleBtn = document.getElementById('replay-sample');
+  if (!addBtn) return;
+
+  addBtn.addEventListener('click', () => {
+    const r = Math.random();
+    const reward = r < 0.3 ? -50 : (r < 0.6 ? -1 : (r < 0.9 ? +10 : +100));
+    const si = Math.floor(Math.random() * sampleStates.length);
+    const ai = Math.floor(Math.random() * sampleActions.length);
+    replayBuffer.push({
+      state: sampleStates[si],
+      action: sampleActions[ai],
+      reward,
+      nextState: sampleNextStates[si]
+    });
+    if (replayBuffer.length > 8) replayBuffer.shift();
+    renderReplay(false);
+  });
+
+  sampleBtn.addEventListener('click', () => {
+    renderReplay(true);
+  });
+}
+
+function renderReplay(highlight) {
+  const container = document.getElementById('replay-entries');
+  if (!container) return;
+  container.innerHTML = '';
+  const highlightIdx = highlight && replayBuffer.length > 0 ?
+    [Math.floor(Math.random() * replayBuffer.length),
+     Math.floor(Math.random() * replayBuffer.length),
+     Math.floor(Math.random() * replayBuffer.length)] : [];
+
+  replayBuffer.forEach((t, i) => {
+    const row = document.createElement('div');
+    row.className = 'replay-entry';
+    if (highlight && highlightIdx.includes(i)) {
+      row.style.background = 'rgba(184,169,212,0.15)';
+      row.style.borderLeft = '3px solid var(--lavender)';
+    }
+    const rwBadge = t.reward > 0
+      ? `<span class="reward-badge pos">+${t.reward}</span>`
+      : `<span class="reward-badge neg">${t.reward}</span>`;
+    row.innerHTML = `<span>${t.state}</span><span>${t.action}</span>${rwBadge}<span>${t.nextState}</span>`;
+    container.appendChild(row);
+  });
+}
+
+// ============================================================
+// MODULE 6 — ACTOR-CRITIC VS REINFORCE VARIANCE SIMULATION
+// ============================================================
+function initActorCriticSim() {
+  const runBtn = document.getElementById('ac-run-btn');
+  const resetBtn = document.getElementById('ac-reset-btn');
+  if (!runBtn) return;
+
+  let rfGradients = [];
+  let acGradients = [];
+
+  function variance(arr) {
+    if (arr.length < 2) return 0;
+    const mean = arr.reduce((s,v) => s+v, 0) / arr.length;
+    return arr.reduce((s,v) => s + (v-mean)**2, 0) / arr.length;
+  }
+
+  function renderBars(containerId, values, color) {
+    const el = document.getElementById(containerId);
+    if (!el) return;
+    el.innerHTML = '';
+    const maxAbs = Math.max(...values.map(Math.abs), 1);
+    values.forEach(v => {
+      const bar = document.createElement('div');
+      const h = Math.abs(v) / maxAbs * 60;
+      bar.style.cssText = `flex:1;height:${h}px;border-radius:3px 3px 0 0;background:${v >= 0 ? color : '#d4a3a3'};align-self:flex-end;transition:height 0.4s;min-width:8px;max-width:28px`;
+      el.appendChild(bar);
+    });
+  }
+
+  runBtn.addEventListener('click', () => {
+    // Simulate 10 episodes
+    for (let i = 0; i < 10; i++) {
+      // REINFORCE: high variance G_t (uniform or rare +100)
+      const r = Math.random();
+      const gt = r < 0.1 ? 100 + Math.random()*20 : (Math.random() * 8 - 2);
+      rfGradients.push(gt);
+
+      // Actor-Critic: low variance — V(s) centers the signal
+      const baseline = 5 + Math.random() * 2; // critic estimate
+      const advantage = gt - baseline + (Math.random() * 4 - 2);
+      acGradients.push(advantage);
+    }
+    if (rfGradients.length > 20) { rfGradients = rfGradients.slice(-20); acGradients = acGradients.slice(-20); }
+
+    renderBars('reinforce-bars', rfGradients.slice(-10), '#e8637a');
+    renderBars('ac-bars', acGradients.slice(-10), '#6db88a');
+
+    const rfVar = variance(rfGradients).toFixed(1);
+    const acVar = variance(acGradients).toFixed(1);
+    document.getElementById('reinforce-var').textContent = rfVar;
+    document.getElementById('ac-var').textContent = acVar;
+
+    const obs = document.getElementById('ac-observation');
+    obs.style.display = 'flex';
+    document.getElementById('ac-obs-text').textContent =
+      `REINFORCE variance: ${rfVar} — Actor-Critic variance: ${acVar}. ${parseFloat(rfVar) > parseFloat(acVar)*2 ? 'Le Critic réduit drastiquement la variance en soustrayant V(s) du retour brut. L\'apprentissage converge plus vite.' : 'Continuez à lancer des épisodes pour voir la différence s\'accentuer avec les épisodes de haute récompense.'}`;
+  });
+
+  resetBtn.addEventListener('click', () => {
+    rfGradients = []; acGradients = [];
+    document.getElementById('reinforce-bars').innerHTML = '';
+    document.getElementById('ac-bars').innerHTML = '';
+    document.getElementById('reinforce-var').textContent = '—';
+    document.getElementById('ac-var').textContent = '—';
+    document.getElementById('ac-observation').style.display = 'none';
+  });
+}
+
+// ============================================================
+// MODULE 6 — STOCHASTIC POLICY SIMULATION
+// ============================================================
+function initPolicySim() {
+  const actions = ['⬆ Haut', '➡ Avant', '⬇ Bas', '⬅ Gauche'];
+  let probs = [0.25, 0.25, 0.25, 0.25];
+  let selectedAction = 1; // index of last selected action
+  const lr = 0.08;
+
+  function renderProbs() {
+    const barsEl = document.getElementById('pg-probs');
+    const labelsEl = document.getElementById('pg-action-labels');
+    if (!barsEl) return;
+    barsEl.innerHTML = '';
+    labelsEl.innerHTML = '';
+    probs.forEach((p, i) => {
+      const bar = document.createElement('div');
+      bar.style.cssText = `flex:1;height:${Math.round(p * 100)}%;border-radius:4px 4px 0 0;background:${i===selectedAction ? 'var(--rose)' : 'rgba(184,169,212,0.4)'};align-self:flex-end;transition:all 0.4s;min-width:20px;position:relative`;
+      const label = document.createElement('div');
+      label.style.cssText = `font-size:0.62rem;text-align:center;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis`;
+      label.textContent = actions[i] + ` ${(p*100).toFixed(0)}%`;
+      barsEl.appendChild(bar);
+      labelsEl.appendChild(label);
+    });
+  }
+
+  function softmax(logits) {
+    const maxL = Math.max(...logits);
+    const exps = logits.map(l => Math.exp(l - maxL));
+    const sum = exps.reduce((a,b) => a+b, 0);
+    return exps.map(e => e/sum);
+  }
+
+  renderProbs();
+
+  document.querySelectorAll('.pg-act-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const reward = parseFloat(btn.dataset.r);
+      // Sample action proportional to probabilities
+      const r = Math.random();
+      let cumSum = 0;
+      for (let i = 0; i < probs.length; i++) {
+        cumSum += probs[i];
+        if (r < cumSum) { selectedAction = i; break; }
+      }
+      // Update probabilities: increase selected if reward positive, decrease if negative
+      const logits = probs.map((p, i) => {
+        const grad = reward > 0 ? (i === selectedAction ? 1 : -0.3) : (i === selectedAction ? -1 : 0.2);
+        return Math.log(p + 1e-8) + lr * grad;
+      });
+      probs = softmax(logits);
+
+      const logEl = document.getElementById('pg-log');
+      const entry = document.createElement('div');
+      const sign = reward > 0 ? '✅' : '❌';
+      entry.textContent = `${sign} Action: ${actions[selectedAction]} | Récompense: ${reward > 0 ? '+' : ''}${reward} → P(${actions[selectedAction]}) = ${(probs[selectedAction]*100).toFixed(1)}%`;
+      entry.style.color = reward > 0 ? 'var(--success)' : 'var(--error)';
+      logEl.prepend(entry);
+      renderProbs();
+    });
+  });
+
+  document.getElementById('pg-reset-btn')?.addEventListener('click', () => {
+    probs = [0.25, 0.25, 0.25, 0.25];
+    selectedAction = 1;
+    document.getElementById('pg-log').innerHTML = '';
+    renderProbs();
+  });
+}
+
+// ============================================================
+// MODULE 7 — PPO CLIP SIMULATION
+// ============================================================
+function initPPOSim() {
+  const ratioSlider = document.getElementById('ppo-ratio');
+  const advSlider = document.getElementById('ppo-advantage');
+  if (!ratioSlider) return;
+
+  const EPS = 0.2;
+
+  function update() {
+    const ratio = parseFloat(ratioSlider.value);
+    const adv = parseFloat(advSlider.value);
+    document.getElementById('ppo-ratio-val').textContent = ratio.toFixed(2);
+    document.getElementById('ppo-adv-val').textContent = (adv >= 0 ? '+' : '') + adv.toFixed(1);
+
+    const unclipped = ratio * adv;
+    const clippedRatio = Math.min(Math.max(ratio, 1 - EPS), 1 + EPS);
+    const clippedVal = clippedRatio * adv;
+    const effective = adv >= 0 ? Math.min(unclipped, clippedVal) : Math.max(unclipped, clippedVal);
+
+    document.getElementById('ppo-unclipped').textContent = unclipped.toFixed(2);
+    document.getElementById('ppo-clipped').textContent = effective.toFixed(2);
+
+    const isClipped = Math.abs(unclipped - effective) > 0.01;
+    const resultBox = document.getElementById('ppo-result-box');
+    const resultText = document.getElementById('ppo-result-text');
+    const noteEl = document.getElementById('ppo-note');
+
+    if (isClipped) {
+      resultBox.style.background = 'rgba(232,99,122,0.08)';
+      resultBox.style.borderColor = 'rgba(232,99,122,0.3)';
+      resultText.style.color = 'var(--rose)';
+      resultText.textContent = '✂ Clipping actif';
+      noteEl.style.display = 'flex';
+      document.getElementById('ppo-note-text').textContent =
+        `r(θ)=${ratio.toFixed(2)} est hors de [${(1-EPS).toFixed(1)}, ${(1+EPS).toFixed(1)}]. PPO utilise ${effective.toFixed(2)} au lieu de ${unclipped.toFixed(2)}. La mise à jour est contrainte pour rester modérée.`;
+    } else {
+      resultBox.style.background = 'rgba(109,184,138,0.08)';
+      resultBox.style.borderColor = 'rgba(109,184,138,0.25)';
+      resultText.style.color = 'var(--success)';
+      resultText.textContent = '✓ Dans la zone';
+      noteEl.style.display = 'none';
+    }
+
+    // Update the visual bar
+    const totalRange = 1.5; // 0.5 to 2.0
+    const pos = (ratio - 0.5) / totalRange * 100;
+    const zoneLeft = (0.8 - 0.5) / totalRange * 100;
+    const zoneWidth = (0.4) / totalRange * 100;
+    document.getElementById('ppo-zone').style.left = zoneLeft + '%';
+    document.getElementById('ppo-zone').style.width = zoneWidth + '%';
+    document.getElementById('ppo-marker').style.left = `calc(${pos}% - 1.5px)`;
+    document.getElementById('ppo-marker').style.background = isClipped ? 'var(--error)' : 'var(--success)';
+  }
+
+  ratioSlider.addEventListener('input', update);
+  advSlider.addEventListener('input', update);
+  update();
+}
+
+// ============================================================
+// SIGNATURE CANVAS — BUTTERFLIES & ROSES
+// ============================================================
+function initSignatureCanvas() {
+  const canvas = document.getElementById('sig-canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+
+  function resize() {
+    canvas.width = canvas.offsetWidth;
+    canvas.height = canvas.offsetHeight;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  const particles = [];
+  const BUTTERFLY = '🦋';
+  const ROSE = '🌹';
+  const ICONS = [BUTTERFLY, BUTTERFLY, ROSE, BUTTERFLY, ROSE, BUTTERFLY];
+
+  for (let i = 0; i < 12; i++) {
+    particles.push({
+      x: Math.random(),
+      y: Math.random(),
+      vx: (Math.random() - 0.5) * 0.002,
+      vy: (Math.random() - 0.5) * 0.001 - 0.0008,
+      icon: ICONS[i % ICONS.length],
+      size: 14 + Math.random() * 10,
+      opacity: 0.15 + Math.random() * 0.3,
+      phase: Math.random() * Math.PI * 2,
+      speed: 0.4 + Math.random() * 0.6,
+    });
+  }
+
+  let t = 0;
+  function animate() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    t += 0.016;
+    particles.forEach(p => {
+      p.x += p.vx + Math.sin(t * p.speed + p.phase) * 0.001;
+      p.y += p.vy;
+      if (p.x < -0.05) p.x = 1.05;
+      if (p.x > 1.05) p.x = -0.05;
+      if (p.y < -0.1) p.y = 1.1;
+      if (p.y > 1.1) p.y = -0.1;
+
+      const flutter = Math.sin(t * 3 * p.speed + p.phase) * 0.04;
+      ctx.save();
+      ctx.globalAlpha = p.opacity * (0.7 + 0.3 * Math.sin(t * p.speed + p.phase));
+      ctx.font = `${p.size}px serif`;
+      ctx.translate(p.x * canvas.width, p.y * canvas.height);
+      ctx.scale(1 + flutter, 1);
+      ctx.fillText(p.icon, 0, 0);
+      ctx.restore();
+    });
+    requestAnimationFrame(animate);
+  }
+  animate();
+}
+
+// ============================================================
+// RESET ALL
+// ============================================================
+function resetAll() {
+  localStorage.removeItem('drl_lab_state');
+  state = { currentModule: 0, completedModules: new Set(), xp: 0, quizAnswered: {} };
+  init();
+}
+
+// ============================================================
+// INIT
+// ============================================================
+function init() {
+  loadState();
+  renderNav();
+  renderPages();
+  updateXPDisplay();
+  updateDashboard();
+  initLab1();
+  initNNViz();
+  initDQN();
+  renderWarehouse();
+  initActorCriticSim();
+  initPolicySim();
+  initPPOSim();
+  initSignatureCanvas();
+
+  // Render all quizzes
+  Object.keys(QUIZZES).forEach(key => {
+    const mId = parseInt(key.replace('m',''));
+    renderQuiz(`quiz-${key}`, key);
+    // Show completion banners for completed modules
+    if (state.completedModules.has(mId)) {
+      const el = document.getElementById(`m${mId}-complete`);
+      if (el) el.classList.add('visible');
+    }
+  });
+}
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
