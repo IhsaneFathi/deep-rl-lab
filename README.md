@@ -112,8 +112,7 @@ index.html
 
 | Dashboard | Simulation DQN | Quiz |
 |-----------|---------------|------|
-| ![dashboard]<img width="944" height="435" alt="dashboard" src="https://github.com/user-attachments/assets/6fd7786b-966d-46ec-9e6e-e4b28afaf2ae" />
-) | ![sim](screenshots/simulation.png) | ![quiz](screenshots/quiz.png) |
+|<img width="944" height="435" alt="dashboard" src="https://github.com/user-attachments/assets/6fd7786b-966d-46ec-9e6e-e4b28afaf2ae" /> | <img width="869" height="437" alt="quiz" src="https://github.com/user-attachments/assets/330a141e-0a7e-4543-9cc0-42ecd36ca4f3" /> | <img width="797" height="314" alt="simulation" src="https://github.com/user-attachments/assets/15dd0876-15eb-442a-b2eb-c82df58a0676" /> |
 
 ---
 
