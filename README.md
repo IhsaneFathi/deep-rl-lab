@@ -137,7 +137,7 @@ MIT License — Copyright (c) 2025 Ihsane Fathi
 
 ## 🌹 À propos de l'auteure
 
-Créé avec soin par **Ihsane Fathi** — Étudiante ingénieure passionnée par la pédagogie active et la transmission des savoirs
+Créé avec soin par **Ihsane Fathi** — Étudiante ingénieure passionnée par les systèmes embarqués, la robotique et l'IA, avec un intérêt particulier pour l'IoT
 
 > *"On n'apprend pas en regardant. On apprend en faisant."*
 
