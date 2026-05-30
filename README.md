@@ -130,7 +130,7 @@ Ce projet est distribué sous licence **MIT**.
 Libre d'utilisation, de modification et de redistribution avec attribution.
 
 ```
-MIT License — Copyright (c) 2025 Ihsane Fathi
+MIT License — Copyright (c) 2026 Ihsane Fathi
 ```
 
 ---
