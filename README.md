@@ -110,8 +110,6 @@ index.html
 
 ## 📸 Captures d'écran
 
-> *(à ajouter après déploiement)*
-
 | Dashboard | Simulation DQN | Quiz |
 |-----------|---------------|------|
 | ![dashboard](screenshots/dashboard.png) | ![sim](screenshots/simulation.png) | ![quiz](screenshots/quiz.png) |
